@@ -25,6 +25,7 @@ export interface Cnf {
 export interface SdJwtCredentialPayload {
   sub?: string;
   cnf: Cnf;
+  iat: number;
   vc: Extensible<{
     type: string;
     credentialStatus?: CredentialStatus;
@@ -33,9 +34,13 @@ export interface SdJwtCredentialPayload {
   aud?: string | string[];
   exp?: number;
   jti?: string;
+}
 
+export interface SdJwtPayload extends Omit<SdJwtCredentialPayload, 'vc'> {
+  iss: string;
+  type: string;
+  status?: CredentialStatus;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [x: string]: any;
 }
-
 export type JWT = string;

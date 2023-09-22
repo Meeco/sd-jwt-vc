@@ -4,9 +4,10 @@ export { ripemd160 } from '@noble/hashes/ripemd160';
 
 const u8a = { toString, fromString, concat };
 
-export function sha256(payload: string | Uint8Array): Uint8Array {
+export function sha256(payload: string | Uint8Array): Promise<string> {
   const data = typeof payload === 'string' ? fromString(payload) : payload;
-  return sha256Hash(data);
+  const hash = bytesToBase64url(sha256Hash(data));
+  return Promise.resolve(hash);
 }
 
 export function bytesToBase64url(b: Uint8Array): string {
@@ -15,4 +16,13 @@ export function bytesToBase64url(b: Uint8Array): string {
 
 export function stringToBytes(s: string): Uint8Array {
   return u8a.fromString(s);
+}
+
+export function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
 }

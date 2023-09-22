@@ -1,5 +1,6 @@
-import type { Hasher, JWT, SdJwtCredentialPayload, Signer } from './types.js';
-
+import { importJWK } from 'jose';
+import * as sdJwt from 'sd-jwt/dist/src/index.js';
+import { Hasher, JWT, JWT_TYP, SdJwtCredentialPayload, SdJwtPayload, Signer, isValidUrl } from './index.js';
 export class Issuer {
   private iss: string;
   private signer: Signer;
@@ -63,17 +64,50 @@ export class Issuer {
       throw new Error('Payload sub must be a string');
     }
 
-    // Create and Sign SD-JWT
+    // get all properties
+    const claims: SdJwtPayload = {
+      ...payload,
+      iss: this.iss,
+      type: payload.vc.type,
+      status: payload.vc.credentialStatus,
+    };
 
-    return '';
-  }
-}
+    // find all top level object key names in payload.vc except for type and credentialStatus
+    const vcKeys = Object.keys(payload.vc).filter((key) => key !== 'type' && key !== 'credentialStatus');
 
-function isValidUrl(url: string): boolean {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
+    // move payload.vc to top level of payload and delete payload.vc
+    Object.assign(claims, payload.vc);
+    delete claims.vc;
+
+    const getHasher = () => Promise.resolve(this.hasher);
+    const getIssuerPrivateKey = () =>
+      importJWK(
+        {
+          kty: 'EC',
+          x: 'QxM0mbg6Ow3zTZZjKMuBv-Be_QsGDfRpPe3m1OP90zk',
+          y: 'aR-Qm7Ckg9TmtcK9-miSaMV2_jd4rYq6ZsFRNb8dZ2o',
+          crv: 'P-256',
+          d: 'fWfGrvu1tUqnyYHrdlpZiBsxkMoeim3EleoPEafV_yM',
+        },
+        'ES256',
+      );
+    const generateSalt = () => 'salt';
+    const jwt = await sdJwt.issueSDJWT({
+      header: {
+        typ: JWT_TYP,
+        alg: 'ES256',
+      },
+      payload: claims,
+      disclosureFrame: {
+        _sd: vcKeys,
+      },
+      alg: 'ES256',
+      getHasher,
+      generateSalt,
+      hash_alg: 'sha-256',
+      getIssuerPrivateKey,
+    });
+
+    return jwt;
   }
 }

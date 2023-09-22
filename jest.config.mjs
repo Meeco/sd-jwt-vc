@@ -1,4 +1,4 @@
-import { defaults } from 'jest-config'
+import { defaults } from 'jest-config';
 
 const config = {
   moduleFileExtensions: [...defaults.moduleFileExtensions, 'mts'],
@@ -20,6 +20,6 @@ const config = {
   testMatch: ['**/__tests__/**/*.test.ts'],
   testEnvironment: 'node',
   coverageProvider: 'v8',
-}
+};
 
-export default config
+export default config;
