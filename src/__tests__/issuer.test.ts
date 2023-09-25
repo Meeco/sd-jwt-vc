@@ -1,18 +1,18 @@
 import { KeyLike, generateKeyPair } from 'jose';
-import { Hasher, Issuer, SdJWTPayload, VCClaims, sha256, supportedAlgorithm } from '../index.js';
+import { Hasher, Issuer, SDJWTPayload, VCClaims, sha256, supportedAlgorithm } from '../index.js';
 
 describe('Issuer', () => {
   let issuer: Issuer;
   let privateKey: KeyLike | Uint8Array;
-  let mockHasher: Hasher;
+  let hasher: Hasher;
   let algorithm: supportedAlgorithm;
 
   beforeEach(async () => {
-    algorithm = supportedAlgorithm.RS512;
-    mockHasher = sha256;
+    algorithm = supportedAlgorithm.EdDSA;
+    hasher = sha256;
     const keyPair = await generateKeyPair(algorithm);
     privateKey = keyPair.privateKey;
-    issuer = new Issuer(privateKey, algorithm, mockHasher);
+    issuer = new Issuer(privateKey, algorithm, hasher);
   });
 
   it('should create a verifiable credential SD JWT', async () => {
@@ -22,7 +22,8 @@ describe('Issuer', () => {
       x: 'QxM0mbg6Ow3zTZZjKMuBv-Be_QsGDfRpPe3m1OP90zk',
       y: 'aR-Qm7Ckg9TmtcK9-miSaMV2_jd4rYq6ZsFRNb8dZ2o',
     };
-    const payload: SdJWTPayload = {
+
+    const payload: SDJWTPayload = {
       iat: Date.now(),
       cnf: {
         jwk: holderPublicKey,

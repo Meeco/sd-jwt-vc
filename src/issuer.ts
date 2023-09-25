@@ -1,7 +1,7 @@
 import { KeyLike } from 'jose';
 import { issueSDJWT } from 'sd-jwt';
 import { DisclosureFrame } from 'sd-jwt/dist/types/types.js';
-import { Hasher, JWT, JWT_TYP, SdJWTPayload, VCClaims, isValidUrl, sha256, supportedAlgorithm } from './index.js';
+import { Hasher, JWT, SDJWTPayload, SD_JWT_TYP, VCClaims, isValidUrl, sha256, supportedAlgorithm } from './index.js';
 
 export class Issuer {
   private hasher: Hasher;
@@ -24,51 +24,10 @@ export class Issuer {
     this.hasher = hasher || sha256;
   }
 
-  async createVCSDJWT(claims: VCClaims, SDJWTPayload?: SdJWTPayload, SdVCClaims: DisclosureFrame = {}): Promise<JWT> {
-    if (!claims || typeof claims !== 'object') {
-      throw new Error('Payload claims is required and must be an object');
-    }
-    if (!claims.type || typeof claims.type !== 'string') {
-      throw new Error('Payload type is required and must be a string');
-    }
-    if (
-      claims.credentialStatus &&
-      (typeof claims.credentialStatus !== 'object' || !claims.status?.idx || !isValidUrl(claims.status?.uri))
-    ) {
-      throw new Error('Payload status must be an object with idx and uri properties');
-    }
+  async createVCSDJWT(claims: VCClaims, SDJWTPayload: SDJWTPayload, SdVCClaims: DisclosureFrame = {}): Promise<JWT> {
+    this.validateVCClaims(claims);
 
-    if (SDJWTPayload) {
-      if (!SDJWTPayload.iss || !isValidUrl(SDJWTPayload.iss)) {
-        throw new Error('Issuer iss is required and must be a valid URL');
-      }
-      if (!SDJWTPayload.iat || typeof SDJWTPayload.iat !== 'number') {
-        throw new Error('Payload iat is required and must be a number');
-      }
-      if (!SDJWTPayload.cnf || typeof SDJWTPayload.cnf !== 'object' || !SDJWTPayload.cnf.jwk) {
-        throw new Error('Payload cnf is required and must be a JWK format');
-      }
-      if (
-        typeof SDJWTPayload.cnf.jwk !== 'object' ||
-        typeof SDJWTPayload.cnf.jwk.kty !== 'string' ||
-        typeof SDJWTPayload.cnf.jwk.crv !== 'string' ||
-        typeof SDJWTPayload.cnf.jwk.x !== 'string' ||
-        typeof SDJWTPayload.cnf.jwk.y !== 'string'
-      ) {
-        throw new Error('Payload cnf.jwk must be valid JWK format');
-      }
-
-      if (SDJWTPayload.nbf && typeof SDJWTPayload.nbf !== 'number') {
-        throw new Error('Payload nbf must be a number');
-      }
-      if (SDJWTPayload.exp && typeof SDJWTPayload.exp !== 'number') {
-        throw new Error('Payload exp must be a number');
-      }
-
-      if (SDJWTPayload.sub && typeof SDJWTPayload.sub !== 'string') {
-        throw new Error('Payload sub must be a string');
-      }
-    }
+    this.validateSDJWTPayload(SDJWTPayload);
 
     const getHasher = () => Promise.resolve(this.hasher);
     const getIssuerPrivateKey = () => Promise.resolve(this.privateKey);
@@ -76,7 +35,7 @@ export class Issuer {
     try {
       const jwt = await issueSDJWT({
         header: {
-          typ: JWT_TYP,
+          typ: SD_JWT_TYP,
           alg: this.algorithm,
         },
         payload: { ...SDJWTPayload, ...claims },
@@ -90,6 +49,53 @@ export class Issuer {
       return jwt;
     } catch (error: any) {
       throw new Error(`Failed to create VCSDJWT: ${error.message}`);
+    }
+  }
+
+  validateSDJWTPayload(SDJWTPayload: SDJWTPayload) {
+    if (!SDJWTPayload.iss || !isValidUrl(SDJWTPayload.iss)) {
+      throw new Error('Issuer iss is required and must be a valid URL');
+    }
+    if (!SDJWTPayload.iat || typeof SDJWTPayload.iat !== 'number') {
+      throw new Error('Payload iat is required and must be a number');
+    }
+    if (!SDJWTPayload.cnf || typeof SDJWTPayload.cnf !== 'object' || !SDJWTPayload.cnf.jwk) {
+      throw new Error('Payload cnf is required and must be a JWK format');
+    }
+    if (
+      typeof SDJWTPayload.cnf.jwk !== 'object' ||
+      typeof SDJWTPayload.cnf.jwk.kty !== 'string' ||
+      typeof SDJWTPayload.cnf.jwk.crv !== 'string' ||
+      typeof SDJWTPayload.cnf.jwk.x !== 'string' ||
+      typeof SDJWTPayload.cnf.jwk.y !== 'string'
+    ) {
+      throw new Error('Payload cnf.jwk must be valid JWK format');
+    }
+
+    if (SDJWTPayload.nbf && typeof SDJWTPayload.nbf !== 'number') {
+      throw new Error('Payload nbf must be a number');
+    }
+    if (SDJWTPayload.exp && typeof SDJWTPayload.exp !== 'number') {
+      throw new Error('Payload exp must be a number');
+    }
+
+    if (SDJWTPayload.sub && typeof SDJWTPayload.sub !== 'string') {
+      throw new Error('Payload sub must be a string');
+    }
+  }
+
+  validateVCClaims(claims: VCClaims) {
+    if (!claims || typeof claims !== 'object') {
+      throw new Error('Payload claims is required and must be an object');
+    }
+    if (!claims.type || typeof claims.type !== 'string') {
+      throw new Error('Payload type is required and must be a string');
+    }
+    if (
+      claims.credentialStatus &&
+      (typeof claims.credentialStatus !== 'object' || !claims.status?.idx || !isValidUrl(claims.status?.uri))
+    ) {
+      throw new Error('Payload status must be an object with idx and uri properties');
     }
   }
 }

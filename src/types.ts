@@ -1,11 +1,11 @@
-import { JWK, JWTPayload } from 'jose';
+import { JSONWebKeySet, JWK, JWTPayload } from 'jose';
 
 export type Signer = (data: string | Uint8Array) => Promise<string>;
 export type Hasher = (data: string | Uint8Array) => Promise<string>;
 export type SignerAlgorithm = (payload: string, signer: Signer) => Promise<string>;
 
-export const JWT_ALG = 'ES256K';
-export const JWT_TYP = 'vc+sd-jwt';
+export const SD_JWT_TYP = 'vc+sd-jwt';
+export const SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
 export type JWT = string;
 export interface CredentialStatus {
   idx: string;
@@ -17,17 +17,23 @@ export interface Cnf {
 }
 
 export interface JWTHeader {
-  typ: typeof JWT_TYP;
+  typ: typeof SD_JWT_TYP;
   alg: string;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [x: string]: any;
 }
 
-export interface SDJWTPayload extends JWTPayload {
+export interface CreateSDJWTPayload extends JWTPayload {
   iss: string;
   iat: number;
   cnf: Cnf;
+}
+
+export interface PresentSDJWTPayload extends JWTPayload {
+  nonce: string;
+  aud: string;
+  iat: number;
 }
 
 export interface VCClaims {
@@ -35,4 +41,10 @@ export interface VCClaims {
   status?: CredentialStatus;
   sub?: string;
   [key: string]: unknown;
+}
+
+export interface IssuerMetadata {
+  issuer: string;
+  jwks?: JSONWebKeySet;
+  jwks_uri?: string;
 }
