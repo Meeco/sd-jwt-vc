@@ -6,7 +6,7 @@ import {
   JWTHeader,
   JWT_ALG,
   JWT_TYP,
-  SdJWTPayload,
+  SDJWTPayload,
   Signer,
   SignerAlgorithm,
   VCClaims,
@@ -14,4 +14,13 @@ import {
 import { bytesToBase64url, isValidUrl, sha256, stringToBytes, supportedAlgorithm } from './util.js';
 
 export { Issuer, JWT_ALG, JWT_TYP, bytesToBase64url, isValidUrl, sha256, stringToBytes, supportedAlgorithm };
-export type { CredentialStatus, Hasher, JWT, JWTHeader, SdJWTPayload, Signer, SignerAlgorithm, VCClaims };
+export type {
+  CredentialStatus,
+  Hasher,
+  JWT,
+  JWTHeader,
+  SDJWTPayload as SdJWTPayload,
+  Signer,
+  SignerAlgorithm,
+  VCClaims,
+};

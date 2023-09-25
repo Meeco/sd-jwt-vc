@@ -24,7 +24,7 @@ export interface JWTHeader {
   [x: string]: any;
 }
 
-export interface SdJWTPayload extends JWTPayload {
+export interface SDJWTPayload extends JWTPayload {
   iss: string;
   iat: number;
   cnf: Cnf;

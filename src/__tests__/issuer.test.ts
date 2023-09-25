@@ -8,7 +8,7 @@ describe('Issuer', () => {
   let algorithm: supportedAlgorithm;
 
   beforeEach(async () => {
-    algorithm = supportedAlgorithm.RS256;
+    algorithm = supportedAlgorithm.RS512;
     mockHasher = sha256;
     const keyPair = await generateKeyPair(algorithm);
     privateKey = keyPair.privateKey;
@@ -16,15 +16,16 @@ describe('Issuer', () => {
   });
 
   it('should create a verifiable credential SD JWT', async () => {
+    const holderPublicKey = {
+      kty: 'EC',
+      crv: 'P-256',
+      x: 'QxM0mbg6Ow3zTZZjKMuBv-Be_QsGDfRpPe3m1OP90zk',
+      y: 'aR-Qm7Ckg9TmtcK9-miSaMV2_jd4rYq6ZsFRNb8dZ2o',
+    };
     const payload: SdJWTPayload = {
       iat: Date.now(),
       cnf: {
-        jwk: {
-          kty: 'EC',
-          crv: 'P-256',
-          x: 'QxM0mbg6Ow3zTZZjKMuBv-Be_QsGDfRpPe3m1OP90zk',
-          y: 'aR-Qm7Ckg9TmtcK9-miSaMV2_jd4rYq6ZsFRNb8dZ2o',
-        },
+        jwk: holderPublicKey,
       },
       iss: 'https://valid.issuer.url',
     };
@@ -36,12 +37,12 @@ describe('Issuer', () => {
         uri: 'https://valid.status.url',
       },
       person: {
-        name: 'vijay shiyani',
+        name: 'test person',
         age: 25,
       },
     };
 
-    const jwt = await issuer.createSdJWT(VCClaims, payload, { person: { _sd: ['name', 'age'] } });
+    const jwt = await issuer.createVCSDJWT(VCClaims, payload, { person: { _sd: ['name', 'age'] } });
     console.log(jwt);
 
     expect(jwt).toBeDefined();

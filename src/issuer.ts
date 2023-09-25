@@ -2,33 +2,32 @@ import { KeyLike } from 'jose';
 import { issueSDJWT } from 'sd-jwt';
 import { DisclosureFrame } from 'sd-jwt/dist/types/types.js';
 import { Hasher, JWT, JWT_TYP, SdJWTPayload, VCClaims, isValidUrl, sha256, supportedAlgorithm } from './index.js';
+
 export class Issuer {
-  // private signer: Signer;
   private hasher: Hasher;
   private privateKey: KeyLike | Uint8Array;
   private algorithm: supportedAlgorithm;
 
   constructor(privateKey: KeyLike | Uint8Array, algorithm: supportedAlgorithm, hasher?: Hasher) {
-    // this.signer = signer;
+    if (!privateKey) {
+      throw new Error('Issuer private key is required');
+    }
+    if (!algorithm || typeof algorithm !== 'string') {
+      throw new Error(`Issuer algorithm is required and must be one of ${supportedAlgorithm}`);
+    }
+    if (hasher && typeof hasher !== 'function') {
+      throw new Error('Issuer hasher is required and must be a function');
+    }
+
     this.algorithm = algorithm;
     this.privateKey = privateKey;
     this.hasher = hasher || sha256;
-    this.validate();
   }
 
-  validate(): void {
-    if (!this.privateKey) {
-      throw new Error('Issuer private key is required');
+  async createVCSDJWT(claims: VCClaims, SDJWTPayload?: SdJWTPayload, SdVCClaims: DisclosureFrame = {}): Promise<JWT> {
+    if (!claims || typeof claims !== 'object') {
+      throw new Error('Payload claims is required and must be an object');
     }
-    if (!this.algorithm || typeof this.algorithm !== 'string') {
-      throw new Error('Issuer algorithm is required and must be a string');
-    }
-    if (!this.hasher || typeof this.hasher !== 'function') {
-      throw new Error('Issuer hasher is required and must be a function');
-    }
-  }
-
-  async createSdJWT(claims: VCClaims, SDJWTPayload?: SdJWTPayload, SdVCClaims: DisclosureFrame = {}): Promise<JWT> {
     if (!claims.type || typeof claims.type !== 'string') {
       throw new Error('Payload type is required and must be a string');
     }
@@ -74,18 +73,23 @@ export class Issuer {
     const getHasher = () => Promise.resolve(this.hasher);
     const getIssuerPrivateKey = () => Promise.resolve(this.privateKey);
 
-    const jwt = await issueSDJWT({
-      header: {
-        typ: JWT_TYP,
+    try {
+      const jwt = await issueSDJWT({
+        header: {
+          typ: JWT_TYP,
+          alg: this.algorithm,
+        },
+        payload: { ...SDJWTPayload, ...claims },
+        disclosureFrame: SdVCClaims,
         alg: this.algorithm,
-      },
-      payload: { ...SDJWTPayload, ...claims },
-      disclosureFrame: SdVCClaims,
-      alg: this.algorithm,
-      getHasher,
-      getIssuerPrivateKey,
-    });
+        getHasher,
+        getIssuerPrivateKey,
+        holderPublicKey: SDJWTPayload?.cnf?.jwk,
+      });
 
-    return jwt;
+      return jwt;
+    } catch (error: any) {
+      throw new Error(`Failed to create VCSDJWT: ${error.message}`);
+    }
   }
 }
