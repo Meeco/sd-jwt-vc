@@ -1,12 +1,13 @@
 import { KeyLike } from 'jose';
 import { issueSDJWT } from 'sd-jwt';
 import { DisclosureFrame } from 'sd-jwt/dist/types/types.js';
-import { Hasher, JWT, SDJWTPayload, SD_JWT_TYP, VCClaims, isValidUrl, sha256, supportedAlgorithm } from './index.js';
+import { Hasher, JWT, SDJWTPayload, VCClaims, isValidUrl, sha256, supportedAlgorithm } from './index.js';
 
 export class Issuer {
   private hasher: Hasher;
   private privateKey: KeyLike | Uint8Array;
   private algorithm: supportedAlgorithm;
+  private static SD_JWT_TYP = 'vc+sd-jwt';
 
   constructor(privateKey: KeyLike | Uint8Array, algorithm: supportedAlgorithm, hasher?: Hasher) {
     if (!privateKey) {
@@ -35,7 +36,7 @@ export class Issuer {
     try {
       const jwt = await issueSDJWT({
         header: {
-          typ: SD_JWT_TYP,
+          typ: Issuer.SD_JWT_TYP,
           alg: this.algorithm,
         },
         payload: { ...SDJWTPayload, ...claims },

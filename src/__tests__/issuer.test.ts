@@ -18,9 +18,9 @@ describe('Issuer', () => {
   it('should create a verifiable credential SD JWT', async () => {
     const holderPublicKey = {
       kty: 'EC',
+      x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
+      y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
       crv: 'P-256',
-      x: 'QxM0mbg6Ow3zTZZjKMuBv-Be_QsGDfRpPe3m1OP90zk',
-      y: 'aR-Qm7Ckg9TmtcK9-miSaMV2_jd4rYq6ZsFRNb8dZ2o',
     };
 
     const payload: SDJWTPayload = {
@@ -44,7 +44,7 @@ describe('Issuer', () => {
     };
 
     const jwt = await issuer.createVCSDJWT(VCClaims, payload, { person: { _sd: ['name', 'age'] } });
-    console.log(jwt);
+    // console.log(jwt);
 
     expect(jwt).toBeDefined();
     expect(typeof jwt).toBe('string');

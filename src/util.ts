@@ -17,15 +17,6 @@ export function stringToBytes(s: string): Uint8Array {
   return u8a.fromString(s);
 }
 
-export function isValidUrl(url: string): boolean {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export enum supportedAlgorithm {
   EdDSA = 'EdDSA',
   Ed448 = 'EdDSA',
@@ -39,4 +30,13 @@ export enum supportedAlgorithm {
   RS256 = 'RS256',
   RS384 = 'RS384',
   RS512 = 'RS512',
+}
+
+export function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
 }
