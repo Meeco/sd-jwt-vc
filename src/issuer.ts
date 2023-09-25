@@ -1,6 +1,6 @@
 import { importJWK } from 'jose';
-import * as sdJwt from 'sd-jwt/dist/src/index.js';
-import { Hasher, JWT, JWT_TYP, SdJwtCredentialPayload, SdJwtPayload, Signer, isValidUrl } from './index.js';
+import * as sdJwt from 'sd-jwt/dist/src/issuer.js';
+import { Hasher, JWT, JWT_TYP, SdJWTPayload, Signer, VCClaims, isValidUrl } from './index.js';
 export class Issuer {
   private iss: string;
   private signer: Signer;
@@ -25,59 +25,47 @@ export class Issuer {
     }
   }
 
-  async createVerifiableCredentialSdJwt(payload: SdJwtCredentialPayload): Promise<JWT> {
-    if (!payload.vc.type || typeof payload.vc.type !== 'string') {
+  async createSdJWT(claims: VCClaims, SDJWTPayload?: SdJWTPayload): Promise<JWT> {
+    if (!claims.type || typeof claims.type !== 'string') {
       throw new Error('Payload type is required and must be a string');
     }
-    if (!payload.iat || typeof payload.iat !== 'number') {
-      throw new Error('Payload iat is required and must be a number');
-    }
-    if (!payload.cnf || typeof payload.cnf !== 'object' || !payload.cnf.jwk) {
-      throw new Error('Payload cnf is required and must be a JWK format');
-    }
     if (
-      typeof payload.cnf.jwk !== 'object' ||
-      typeof payload.cnf.jwk.kty !== 'string' ||
-      typeof payload.cnf.jwk.crv !== 'string' ||
-      typeof payload.cnf.jwk.x !== 'string' ||
-      typeof payload.cnf.jwk.y !== 'string'
-    ) {
-      throw new Error('Payload cnf.jwk must be valid JWK format');
-    }
-
-    if (payload.nbf && typeof payload.nbf !== 'number') {
-      throw new Error('Payload nbf must be a number');
-    }
-    if (payload.exp && typeof payload.exp !== 'number') {
-      throw new Error('Payload exp must be a number');
-    }
-
-    if (
-      payload.vc.credentialStatus &&
-      (typeof payload.vc.credentialStatus !== 'object' ||
-        !payload.vc.credentialStatus.idx ||
-        !isValidUrl(payload.vc.credentialStatus.uri))
+      claims.credentialStatus &&
+      (typeof claims.credentialStatus !== 'object' || !claims.status?.idx || !isValidUrl(claims.status?.uri))
     ) {
       throw new Error('Payload status must be an object with idx and uri properties');
     }
-    if (payload.sub && typeof payload.sub !== 'string') {
-      throw new Error('Payload sub must be a string');
+
+    if (SDJWTPayload) {
+      if (!SDJWTPayload.iat || typeof SDJWTPayload.iat !== 'number') {
+        throw new Error('Payload iat is required and must be a number');
+      }
+      if (!SDJWTPayload.cnf || typeof SDJWTPayload.cnf !== 'object' || !SDJWTPayload.cnf.jwk) {
+        throw new Error('Payload cnf is required and must be a JWK format');
+      }
+      if (
+        typeof SDJWTPayload.cnf.jwk !== 'object' ||
+        typeof SDJWTPayload.cnf.jwk.kty !== 'string' ||
+        typeof SDJWTPayload.cnf.jwk.crv !== 'string' ||
+        typeof SDJWTPayload.cnf.jwk.x !== 'string' ||
+        typeof SDJWTPayload.cnf.jwk.y !== 'string'
+      ) {
+        throw new Error('Payload cnf.jwk must be valid JWK format');
+      }
+
+      if (SDJWTPayload.nbf && typeof SDJWTPayload.nbf !== 'number') {
+        throw new Error('Payload nbf must be a number');
+      }
+      if (SDJWTPayload.exp && typeof SDJWTPayload.exp !== 'number') {
+        throw new Error('Payload exp must be a number');
+      }
+
+      if (SDJWTPayload.sub && typeof SDJWTPayload.sub !== 'string') {
+        throw new Error('Payload sub must be a string');
+      }
     }
 
-    // get all properties
-    const claims: SdJwtPayload = {
-      ...payload,
-      iss: this.iss,
-      type: payload.vc.type,
-      status: payload.vc.credentialStatus,
-    };
-
-    // find all top level object key names in payload.vc except for type and credentialStatus
-    const vcKeys = Object.keys(payload.vc).filter((key) => key !== 'type' && key !== 'credentialStatus');
-
-    // move payload.vc to top level of payload and delete payload.vc
-    Object.assign(claims, payload.vc);
-    delete claims.vc;
+    const sdProps = Object.keys(claims).filter((key) => key !== 'type' && key !== 'credentialStatus');
 
     const getHasher = () => Promise.resolve(this.hasher);
     const getIssuerPrivateKey = () =>
@@ -92,14 +80,15 @@ export class Issuer {
         'ES256',
       );
     const generateSalt = () => 'salt';
+
     const jwt = await sdJwt.issueSDJWT({
       header: {
         typ: JWT_TYP,
         alg: 'ES256',
       },
-      payload: claims,
+      payload: { ...SDJWTPayload, ...claims },
       disclosureFrame: {
-        _sd: vcKeys,
+        _sd: sdProps,
       },
       alg: 'ES256',
       getHasher,

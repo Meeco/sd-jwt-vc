@@ -33,6 +33,7 @@
   "dependencies": {
     "@noble/curves": "^1.0.0",
     "@noble/hashes": "^1.3.0",
+    "jose": "^4.14.6",
     "sd-jwt": "file:./sd-jwt-0.0.1.tgz",
     "uint8arrays": "^4.0.3"
   },

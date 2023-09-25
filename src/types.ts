@@ -1,3 +1,5 @@
+import { JWK, JWTPayload } from 'jose';
+
 export type Signer = (data: string | Uint8Array) => Promise<string>;
 export type Hasher = (data: string | Uint8Array) => Promise<string>;
 export type SignerAlgorithm = (payload: string, signer: Signer) => Promise<string>;
@@ -10,37 +12,29 @@ export interface CredentialStatus {
   uri: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Extensible<T> = T & { [x: string]: any };
-
 export interface Cnf {
-  jwk: {
-    kty: string;
-    crv: string;
-    x: string;
-    y: string;
-  };
+  jwk: JWK;
 }
 
-export interface SdJwtCredentialPayload {
-  sub?: string;
-  cnf: Cnf;
-  iat: number;
-  vc: Extensible<{
-    type: string;
-    credentialStatus?: CredentialStatus;
-  }>;
-  nbf?: number;
-  aud?: string | string[];
-  exp?: number;
-  jti?: string;
-}
+export interface JWTHeader {
+  typ: typeof JWT_TYP;
+  alg: string;
 
-export interface SdJwtPayload extends Omit<SdJwtCredentialPayload, 'vc'> {
-  iss: string;
-  type: string;
-  status?: CredentialStatus;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [x: string]: any;
 }
+
+export interface SdJWTPayload extends JWTPayload {
+  iss: string;
+  iat: number;
+  cnf: Cnf;
+}
+
+export interface VCClaims {
+  type: string;
+  status?: CredentialStatus;
+  sub?: string;
+  [key: string]: unknown;
+}
+
 export type JWT = string;

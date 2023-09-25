@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { Hasher, Issuer, Signer, sha256 } from '../index.js';
+import { Hasher, Issuer, SdJWTPayload, Signer, VCClaims, sha256 } from '../index.js';
 
 describe('Issuer', () => {
   let issuer: Issuer;
@@ -13,15 +13,7 @@ describe('Issuer', () => {
   });
 
   it('should create a verifiable credential SD JWT', async () => {
-    const payload = {
-      vc: {
-        type: 'VerifiableCredential',
-        credentialStatus: {
-          idx: 'statusIndex',
-          uri: 'https://valid.status.url',
-        },
-        name: 'vijay shiyani',
-      },
+    const payload: SdJWTPayload = {
       iat: Date.now(),
       cnf: {
         jwk: {
@@ -31,9 +23,19 @@ describe('Issuer', () => {
           y: 'aR-Qm7Ckg9TmtcK9-miSaMV2_jd4rYq6ZsFRNb8dZ2o',
         },
       },
+      iss: 'https://valid.issuer.url',
     };
 
-    const jwt = await issuer.createVerifiableCredentialSdJwt(payload);
+    const VCClaims: VCClaims = {
+      type: 'VerifiableCredential',
+      status: {
+        idx: 'statusIndex',
+        uri: 'https://valid.status.url',
+      },
+      name: 'vijay shiyani',
+    };
+
+    const jwt = await issuer.createSdJWT(VCClaims, payload);
     console.log(jwt);
 
     expect(jwt).toBeDefined();
