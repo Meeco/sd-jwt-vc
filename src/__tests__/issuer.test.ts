@@ -1,4 +1,4 @@
-import { KeyLike, generateKeyPair } from 'jose';
+import { KeyLike, exportJWK, generateKeyPair } from 'jose';
 import { Hasher, Issuer, SDJWTPayload, VCClaims, sha256, supportedAlgorithm } from '../index.js';
 
 describe('Issuer', () => {
@@ -12,6 +12,8 @@ describe('Issuer', () => {
     hasher = sha256;
     const keyPair = await generateKeyPair(algorithm);
     privateKey = keyPair.privateKey;
+    console.log(await exportJWK(keyPair.publicKey));
+    console.log(await exportJWK(keyPair.privateKey));
     issuer = new Issuer(privateKey, algorithm, hasher);
   });
 
@@ -44,7 +46,7 @@ describe('Issuer', () => {
     };
 
     const jwt = await issuer.createVCSDJWT(VCClaims, payload, { person: { _sd: ['name', 'age'] } });
-    // console.log(jwt);
+    console.log(jwt);
 
     expect(jwt).toBeDefined();
     expect(typeof jwt).toBe('string');

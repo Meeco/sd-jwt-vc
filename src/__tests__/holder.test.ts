@@ -1,4 +1,5 @@
 import { KeyLike, generateKeyPair, importJWK } from 'jose';
+import { verifySDJWT } from 'sd-jwt';
 import { Holder, supportedAlgorithm } from '../index.js';
 
 describe('Holder', () => {
@@ -14,11 +15,11 @@ describe('Holder', () => {
   });
 
   it('should get KeyBindingJWT', async () => {
-    const jwt = await holder.getKeyBindingJWT('https://valid.verifier.url');
+    const { keyBindingJWT } = await holder.getKeyBindingJWT('https://valid.verifier.url');
     // console.log(jwt);
 
-    expect(jwt).toBeDefined();
-    expect(typeof jwt).toBe('string');
+    expect(keyBindingJWT).toBeDefined();
+    expect(typeof keyBindingJWT).toBe('string');
   });
 
   it('should present VerifiableCredential SD JWT With KeyBindingJWT', async () => {
@@ -39,13 +40,26 @@ describe('Holder', () => {
     const pk = await importJWK(privateKey);
     const holder = new Holder(pk, supportedAlgorithm.ES256);
     const issuedSDJWT =
-      'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2Mjg1MTk3MTQsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbIlhjOUx0VFV3c3hWSnFScllhS1Jiell1VWdzM1dxbloxXzVlU1NSSzJFZDQiLCJRbVNGd1hzajlOdXoxbEdGcDRVcjZtc09yOEVKWFpFSFpYTFFqWWU5dktFIl19fQ.1ih_e4iEAQFQvNHGwbxiYMcGoT0TixQhgoNJ3p8ZVj8zGGcn81g1hMVTVlZ4uag_1PvGxzTMeZKXjvzsE8HWAg~WyJYRW1icWhvbGRONWVMaWkxIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJGcDhxVVg3QjY0eUtrNVNCIiwiYWdlIiwyNV0~';
+      'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
 
-    const sdJWTWithKeyBinding = await holder.presentVerifiableCredentialSDJWT(
+    const { vcSDJWTWithkeyBindingJWT, nonce } = await holder.presentVerifiableCredentialSDJWT(
       'https://valid.verifier.url',
       issuedSDJWT,
     );
 
-    console.log(sdJWTWithKeyBinding);
+    console.log('vcSDJWTWithkeyBindingJWT: ' + vcSDJWTWithkeyBindingJWT);
+
+    const issuerPubKey = await importJWK({
+      crv: 'Ed25519',
+      x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
+      kty: 'OKP',
+    });
+    const getIssuerKey = () => Promise.resolve(issuerPubKey);
+    const result = await verifySDJWT(vcSDJWTWithkeyBindingJWT, {
+      getIssuerKey,
+      expected_aud: 'https://valid.verifier.url',
+      expected_nonce: nonce,
+    });
+    console.log(result);
   });
 });

@@ -21,27 +21,31 @@ export class Holder {
     this.privateKey = privateKey;
   }
 
-  async getKeyBindingJWT(forVerifier: string): Promise<JWT> {
+  async getKeyBindingJWT(forVerifier: string): Promise<{ keyBindingJWT: JWT; nonce: string }> {
     try {
       const protectedHeader: JWTHeaderParameters = {
         typ: Holder.SD_KEY_BINDING_JWT_TYP,
         alg: this.algorithm,
       };
 
+      const nonce = this.generateNonce();
       const presentSDJWTPayload: PresentSDJWTPayload = {
         aud: forVerifier,
-        nonce: this.generateNonce(),
+        nonce,
         iat: Date.now(),
       };
 
       const jwt = await new SignJWT(presentSDJWTPayload).setProtectedHeader(protectedHeader).sign(this.privateKey);
-      return jwt;
+      return { keyBindingJWT: jwt, nonce };
     } catch (error: any) {
       throw new Error(`Failed to get Key Binding JWT: ${error.message}`);
     }
   }
 
-  async presentVerifiableCredentialSDJWT(forVerifier: string, sdJWT: JWT): Promise<JWT> {
+  async presentVerifiableCredentialSDJWT(
+    forVerifier: string,
+    sdJWT: JWT,
+  ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce: string }> {
     if (typeof forVerifier !== 'string' || !forVerifier || !isValidUrl(forVerifier)) {
       throw new Error('Invalid forVerifier parameter');
     }
@@ -58,8 +62,8 @@ export class Holder {
       throw new Error('No holder public key in SD-JWT');
     }
 
-    const holderJWK = await importJWK(holderPublicKey, this.algorithm);
-    const keyBindingJWT = await this.getKeyBindingJWT(forVerifier);
+    const holderJWK = await importJWK(holderPublicKey);
+    const { nonce, keyBindingJWT } = await this.getKeyBindingJWT(forVerifier);
 
     try {
       await jwtVerify(keyBindingJWT, holderJWK);
@@ -67,7 +71,7 @@ export class Holder {
       throw new Error('Failed to verify key binding JWT: SD JWT holder public key does not match private key');
     }
 
-    return `${sdJWT}.${keyBindingJWT}`;
+    return { vcSDJWTWithkeyBindingJWT: `${sdJWT}${keyBindingJWT}`, nonce };
   }
 
   generateNonce(): string {
