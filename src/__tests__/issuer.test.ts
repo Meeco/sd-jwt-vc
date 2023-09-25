@@ -1,15 +1,20 @@
-import { jest } from '@jest/globals';
-import { Hasher, Issuer, SdJWTPayload, Signer, VCClaims, sha256 } from '../index.js';
+import { KeyLike, generateKeyPair } from 'jose';
+import { Hasher, Issuer, SdJWTPayload, VCClaims, sha256, supportedAlgorithm } from '../index.js';
 
 describe('Issuer', () => {
   let issuer: Issuer;
-  let mockSigner: Signer;
+  // let mockSigner: Signer;
+  let privateKey: KeyLike | Uint8Array;
   let mockHasher: Hasher;
+  let algorithm: supportedAlgorithm;
 
-  beforeEach(() => {
-    mockSigner = jest.fn(() => Promise.resolve('mocked value'));
+  beforeEach(async () => {
+    // mockSigner = jest.fn(() => Promise.resolve('mocked value'));
+    algorithm = supportedAlgorithm.RS256;
     mockHasher = sha256;
-    issuer = new Issuer('https://valid.issuer.url', mockSigner, mockHasher);
+    const keyPair = await generateKeyPair(algorithm);
+    privateKey = keyPair.privateKey;
+    issuer = new Issuer(privateKey, algorithm, mockHasher);
   });
 
   it('should create a verifiable credential SD JWT', async () => {
@@ -32,7 +37,10 @@ describe('Issuer', () => {
         idx: 'statusIndex',
         uri: 'https://valid.status.url',
       },
-      name: 'vijay shiyani',
+      person: {
+        name: 'vijay shiyani',
+        age: 25,
+      },
     };
 
     const jwt = await issuer.createSdJWT(VCClaims, payload);

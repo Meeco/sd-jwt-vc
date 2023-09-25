@@ -6,7 +6,7 @@ export type SignerAlgorithm = (payload: string, signer: Signer) => Promise<strin
 
 export const JWT_ALG = 'ES256K';
 export const JWT_TYP = 'vc+sd-jwt';
-
+export type JWT = string;
 export interface CredentialStatus {
   idx: string;
   uri: string;
@@ -36,5 +36,3 @@ export interface VCClaims {
   sub?: string;
   [key: string]: unknown;
 }
-
-export type JWT = string;

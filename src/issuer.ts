@@ -1,24 +1,26 @@
-import { importJWK } from 'jose';
-import * as sdJwt from 'sd-jwt/dist/src/issuer.js';
-import { Hasher, JWT, JWT_TYP, SdJWTPayload, Signer, VCClaims, isValidUrl } from './index.js';
+import { KeyLike } from 'jose';
+import { issueSDJWT } from 'sd-jwt';
+import { Hasher, JWT, JWT_TYP, SdJWTPayload, VCClaims, isValidUrl, sha256, supportedAlgorithm } from './index.js';
 export class Issuer {
-  private iss: string;
-  private signer: Signer;
+  // private signer: Signer;
   private hasher: Hasher;
+  private privateKey: KeyLike | Uint8Array;
+  private algorithm: supportedAlgorithm;
 
-  constructor(iss: string, signer: Signer, hasher: Hasher) {
-    this.iss = iss;
-    this.signer = signer;
-    this.hasher = hasher;
+  constructor(privateKey: KeyLike | Uint8Array, algorithm: supportedAlgorithm, hasher?: Hasher) {
+    // this.signer = signer;
+    this.algorithm = algorithm;
+    this.privateKey = privateKey;
+    this.hasher = hasher || sha256;
     this.validate();
   }
 
   validate(): void {
-    if (!this.iss || !isValidUrl(this.iss)) {
-      throw new Error('Issuer iss is required and must be a valid URL');
+    if (!this.privateKey) {
+      throw new Error('Issuer private key is required');
     }
-    if (!this.signer || typeof this.signer !== 'function') {
-      throw new Error('Issuer signer is required and must be a function');
+    if (!this.algorithm || typeof this.algorithm !== 'string') {
+      throw new Error('Issuer algorithm is required and must be a string');
     }
     if (!this.hasher || typeof this.hasher !== 'function') {
       throw new Error('Issuer hasher is required and must be a function');
@@ -37,6 +39,9 @@ export class Issuer {
     }
 
     if (SDJWTPayload) {
+      if (!SDJWTPayload.iss || !isValidUrl(SDJWTPayload.iss)) {
+        throw new Error('Issuer iss is required and must be a valid URL');
+      }
       if (!SDJWTPayload.iat || typeof SDJWTPayload.iat !== 'number') {
         throw new Error('Payload iat is required and must be a number');
       }
@@ -65,35 +70,22 @@ export class Issuer {
       }
     }
 
-    const sdProps = Object.keys(claims).filter((key) => key !== 'type' && key !== 'credentialStatus');
+    const sdProps = Object.keys(claims).filter((key) => key !== 'type' && key !== 'status');
 
     const getHasher = () => Promise.resolve(this.hasher);
-    const getIssuerPrivateKey = () =>
-      importJWK(
-        {
-          kty: 'EC',
-          x: 'QxM0mbg6Ow3zTZZjKMuBv-Be_QsGDfRpPe3m1OP90zk',
-          y: 'aR-Qm7Ckg9TmtcK9-miSaMV2_jd4rYq6ZsFRNb8dZ2o',
-          crv: 'P-256',
-          d: 'fWfGrvu1tUqnyYHrdlpZiBsxkMoeim3EleoPEafV_yM',
-        },
-        'ES256',
-      );
+    const getIssuerPrivateKey = () => Promise.resolve(this.privateKey);
     const generateSalt = () => 'salt';
 
-    const jwt = await sdJwt.issueSDJWT({
+    const jwt = await issueSDJWT({
       header: {
         typ: JWT_TYP,
-        alg: 'ES256',
+        alg: this.algorithm,
       },
       payload: { ...SDJWTPayload, ...claims },
-      disclosureFrame: {
-        _sd: sdProps,
-      },
-      alg: 'ES256',
+      disclosureFrame: { person: { _sd: ['age'] } },
+      alg: this.algorithm,
       getHasher,
       generateSalt,
-      hash_alg: 'sha-256',
       getIssuerPrivateKey,
     });
 
