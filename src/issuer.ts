@@ -1,5 +1,6 @@
 import { KeyLike } from 'jose';
 import { issueSDJWT } from 'sd-jwt';
+import { DisclosureFrame } from 'sd-jwt/dist/types/types.js';
 import { Hasher, JWT, JWT_TYP, SdJWTPayload, VCClaims, isValidUrl, sha256, supportedAlgorithm } from './index.js';
 export class Issuer {
   // private signer: Signer;
@@ -27,7 +28,7 @@ export class Issuer {
     }
   }
 
-  async createSdJWT(claims: VCClaims, SDJWTPayload?: SdJWTPayload): Promise<JWT> {
+  async createSdJWT(claims: VCClaims, SDJWTPayload?: SdJWTPayload, SdVCClaims: DisclosureFrame = {}): Promise<JWT> {
     if (!claims.type || typeof claims.type !== 'string') {
       throw new Error('Payload type is required and must be a string');
     }
@@ -70,11 +71,8 @@ export class Issuer {
       }
     }
 
-    const sdProps = Object.keys(claims).filter((key) => key !== 'type' && key !== 'status');
-
     const getHasher = () => Promise.resolve(this.hasher);
     const getIssuerPrivateKey = () => Promise.resolve(this.privateKey);
-    const generateSalt = () => 'salt';
 
     const jwt = await issueSDJWT({
       header: {
@@ -82,10 +80,9 @@ export class Issuer {
         alg: this.algorithm,
       },
       payload: { ...SDJWTPayload, ...claims },
-      disclosureFrame: { person: { _sd: ['age'] } },
+      disclosureFrame: SdVCClaims,
       alg: this.algorithm,
       getHasher,
-      generateSalt,
       getIssuerPrivateKey,
     });
 

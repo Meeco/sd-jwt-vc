@@ -3,13 +3,11 @@ import { Hasher, Issuer, SdJWTPayload, VCClaims, sha256, supportedAlgorithm } fr
 
 describe('Issuer', () => {
   let issuer: Issuer;
-  // let mockSigner: Signer;
   let privateKey: KeyLike | Uint8Array;
   let mockHasher: Hasher;
   let algorithm: supportedAlgorithm;
 
   beforeEach(async () => {
-    // mockSigner = jest.fn(() => Promise.resolve('mocked value'));
     algorithm = supportedAlgorithm.RS256;
     mockHasher = sha256;
     const keyPair = await generateKeyPair(algorithm);
@@ -43,7 +41,7 @@ describe('Issuer', () => {
       },
     };
 
-    const jwt = await issuer.createSdJWT(VCClaims, payload);
+    const jwt = await issuer.createSdJWT(VCClaims, payload, { person: { _sd: ['name', 'age'] } });
     console.log(jwt);
 
     expect(jwt).toBeDefined();
