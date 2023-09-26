@@ -1,7 +1,13 @@
 import { KeyLike, generateKeyPair, importJWK } from 'jose';
 import { verifySDJWT } from 'sd-jwt';
 import { Holder } from './holder';
-import { supportedAlgorithm } from './util';
+import {
+  defaultHashAlgorithm,
+  hasherCallbackFn,
+  kbVeriferCallbackFn,
+  supportedAlgorithm,
+  verifierCallbackFn,
+} from './util';
 
 describe('Holder', () => {
   let holder: Holder;
@@ -55,12 +61,17 @@ describe('Holder', () => {
       x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
       kty: 'OKP',
     });
-    const getIssuerKey = () => Promise.resolve(issuerPubKey);
-    const result = await verifySDJWT(vcSDJWTWithkeyBindingJWT, {
-      getIssuerKey,
-      expected_aud: 'https://valid.verifier.url',
-      expected_nonce: nonce,
-    });
+
+    const result = await verifySDJWT(
+      vcSDJWTWithkeyBindingJWT,
+      verifierCallbackFn(issuerPubKey),
+      () => Promise.resolve(hasherCallbackFn(defaultHashAlgorithm)),
+      {
+        kb: {
+          verifier: kbVeriferCallbackFn('https://valid.verifier.url', nonce),
+        },
+      },
+    );
     console.log(result);
   });
 });

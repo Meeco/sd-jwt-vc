@@ -1,28 +1,23 @@
-import * as crypto from 'crypto';
 import { KeyLike, exportJWK, generateKeyPair } from 'jose';
-import { SDJWTPayload } from 'sd-jwt/dist/types/types';
+
+import { SDJWTPayload } from 'sd-jwt';
 import { Issuer } from './issuer';
-import { Hasher, VCClaims } from './types';
+import { VCClaims } from './types';
 import { supportedAlgorithm } from './util';
 
 describe('Issuer', () => {
   let issuer: Issuer;
   let privateKey: KeyLike | Uint8Array;
-  let hasher: Hasher;
   let algorithm: supportedAlgorithm;
 
   beforeEach(async () => {
     algorithm = supportedAlgorithm.EdDSA;
-    hasher = (data) => {
-      const digest = crypto.createHash('sha256').update(data).digest();
-      const hash = Buffer.from(digest).toString('base64url');
-      return Promise.resolve(hash);
-    };
+
     const keyPair = await generateKeyPair(algorithm);
     privateKey = keyPair.privateKey;
     console.log(await exportJWK(keyPair.publicKey));
     console.log(await exportJWK(keyPair.privateKey));
-    issuer = new Issuer(privateKey, algorithm, hasher);
+    issuer = new Issuer(privateKey, algorithm);
   });
 
   it('should create a verifiable credential SD JWT', async () => {

@@ -1,7 +1,6 @@
-import { randomBytes } from 'crypto';
 import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, decodeJwt, importJWK, jwtVerify } from 'jose';
 import { CreateSDJWTPayload, JWT, PresentSDJWTPayload } from './types';
-import { isValidUrl, supportedAlgorithm } from './util';
+import { generateNonce, isValidUrl, supportedAlgorithm } from './util';
 
 export class Holder {
   private privateKey: KeyLike | Uint8Array;
@@ -28,7 +27,7 @@ export class Holder {
         alg: this.algorithm,
       };
 
-      const nonce = this.generateNonce();
+      const nonce = generateNonce();
       const presentSDJWTPayload: PresentSDJWTPayload = {
         aud: forVerifier,
         nonce,
@@ -72,9 +71,5 @@ export class Holder {
     }
 
     return { vcSDJWTWithkeyBindingJWT: `${sdJWT}${keyBindingJWT}`, nonce };
-  }
-
-  generateNonce(length: number = 16): string {
-    return randomBytes(length).toString('base64');
   }
 }

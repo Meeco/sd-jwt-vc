@@ -1,9 +1,5 @@
 import { JSONWebKeySet, JWK, JWTPayload } from 'jose';
 
-export type Signer = (data: string | Uint8Array) => Promise<string>;
-export type Hasher = (data: string | Uint8Array) => Promise<string>;
-export type SignerAlgorithm = (payload: string, signer: Signer) => Promise<string>;
-
 export type JWT = string;
 export interface CredentialStatus {
   idx: string;
