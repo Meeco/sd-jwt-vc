@@ -54,7 +54,7 @@ export class Holder {
       throw new Error('Invalid sdJWT parameter');
     }
 
-    const [sdJWTPayload, ...disclousres] = sdJWT.split(Holder.SD_JWT_FORMAT_SEPARATOR);
+    const [sdJWTPayload, _] = sdJWT.split(Holder.SD_JWT_FORMAT_SEPARATOR);
     const jwt: JWTPayload = decodeJwt(sdJWTPayload);
     const { jwk: holderPublicKey } = (jwt as CreateSDJWTPayload).cnf || {};
 

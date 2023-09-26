@@ -1,6 +1,5 @@
 export enum supportedAlgorithm {
   EdDSA = 'EdDSA',
-  Ed448 = 'EdDSA',
   ES256 = 'ES256',
   ES256K = 'ES256K',
   ES384 = 'ES384',
