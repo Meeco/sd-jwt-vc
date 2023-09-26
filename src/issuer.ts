@@ -9,6 +9,12 @@ export class Issuer {
   private algorithm: supportedAlgorithm;
   private static SD_JWT_TYP = 'vc+sd-jwt';
 
+  /**
+   * Creates a new instance of the `Issuer` class.
+   * @param privateKey The private key used to sign the payload.
+   * @param algorithm The algorithm used to sign the payload.
+   * @param hasherAlgo The algorithm used to hash the payload before signing.
+   */
   constructor(
     privateKey: KeyLike | Uint8Array,
     algorithm: supportedAlgorithm,
@@ -29,10 +35,18 @@ export class Issuer {
     this.signer = signerCallbackFn(privateKey);
   }
 
+  /**
+   * Creates a VC as an SD-JWT token.
+   * @param claims The VC claims.
+   * @param sdJWTPayload The SD-JWT payload.
+   * @param sdVCClaimsDisclosureFrame The SD-VC claims.
+   * @param saltGenerator The salt generator.
+   * @returns The VC as an SD-JWT token.
+   */
   async createVCSDJWT(
     claims: VCClaims,
     sdJWTPayload: SDJWTPayload,
-    SdVCClaims: DisclosureFrame = {},
+    sdVCClaimsDisclosureFrame: DisclosureFrame = {},
     saltGenerator?: SaltGenerator,
   ): Promise<JWT> {
     this.validateVCClaims(claims);
@@ -46,7 +60,7 @@ export class Issuer {
           alg: this.algorithm,
         },
         { ...sdJWTPayload, ...claims },
-        SdVCClaims,
+        sdVCClaimsDisclosureFrame,
         {
           signer: this.signer,
           hash: {
@@ -64,6 +78,10 @@ export class Issuer {
     }
   }
 
+  /**
+   * Validates the SD-JWT payload.
+   * @param sdJWTPayload The SD-JWT payload to validate.
+   */
   validateSDJWTPayload(sdJWTPayload: SDJWTPayload) {
     if (!sdJWTPayload.iss || !isValidUrl(sdJWTPayload.iss)) {
       throw new Error('Issuer iss is required and must be a valid URL');
@@ -96,6 +114,10 @@ export class Issuer {
     }
   }
 
+  /**
+   * Validates the VC claims.
+   * @param claims The VC claims to validate.
+   */
   validateVCClaims(claims: VCClaims) {
     if (!claims || typeof claims !== 'object') {
       throw new Error('Payload claims is required and must be an object');

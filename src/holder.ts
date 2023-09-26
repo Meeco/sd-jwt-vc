@@ -20,6 +20,12 @@ export class Holder {
     this.privateKey = privateKey;
   }
 
+  /**
+   * Gets the key binding JWT for the specified verifier.
+   * @param forVerifier The verifier to get the key binding JWT for.
+   * @returns The key binding JWT and nonce.
+   * @throws An error if the key binding JWT could not be created.
+   */
   async getKeyBindingJWT(forVerifier: string): Promise<{ keyBindingJWT: JWT; nonce: string }> {
     try {
       const protectedHeader: JWTHeaderParameters = {
@@ -41,6 +47,13 @@ export class Holder {
     }
   }
 
+  /**
+   * Presents a VC as an SD-JWT token with a key binding JWT.
+   * @param forVerifier The verifier to present the VC to.
+   * @param sdJWT The SD-JWT to present.
+   * @returns The VC as an SD-JWT token with a key binding JWT and nonce.
+   * @throws An error if the forVerifier or sdJWT parameters are invalid, or if the key binding JWT could not be verified.
+   */
   async presentVerifiableCredentialSDJWT(
     forVerifier: string,
     sdJWT: JWT,

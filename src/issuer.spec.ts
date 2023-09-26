@@ -1,6 +1,6 @@
-import { KeyLike, exportJWK, generateKeyPair } from 'jose';
+import { KeyLike, generateKeyPair } from 'jose';
 
-import { SDJWTPayload } from 'sd-jwt';
+import { DisclosureFrame, SDJWTPayload } from 'sd-jwt';
 import { Issuer } from './issuer';
 import { VCClaims } from './types';
 import { supportedAlgorithm } from './util';
@@ -15,8 +15,6 @@ describe('Issuer', () => {
 
     const keyPair = await generateKeyPair(algorithm);
     privateKey = keyPair.privateKey;
-    console.log(await exportJWK(keyPair.publicKey));
-    console.log(await exportJWK(keyPair.privateKey));
     issuer = new Issuer(privateKey, algorithm);
   });
 
@@ -48,7 +46,9 @@ describe('Issuer', () => {
       },
     };
 
-    const jwt = await issuer.createVCSDJWT(vcClaims, payload, { person: { _sd: ['name', 'age'] } });
+    const sdVCClaimsDisclosureFrame: DisclosureFrame = { person: { _sd: ['name', 'age'] } };
+
+    const jwt = await issuer.createVCSDJWT(vcClaims, payload, sdVCClaimsDisclosureFrame);
     console.log(jwt);
 
     expect(jwt).toBeDefined();
