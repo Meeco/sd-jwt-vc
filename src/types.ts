@@ -1,5 +1,7 @@
 import { JSONWebKeySet, JWK, JWTPayload } from 'jose';
 
+export const SD_JWT_FORMAT_SEPARATOR = '~';
+
 export type JWT = string;
 export interface CredentialStatus {
   idx: string;
