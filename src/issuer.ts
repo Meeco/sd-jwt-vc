@@ -1,7 +1,8 @@
 import { KeyLike } from 'jose';
 import { issueSDJWT } from 'sd-jwt';
-import { DisclosureFrame } from 'sd-jwt/dist/types/types.js';
-import { Hasher, JWT, SDJWTPayload, VCClaims, isValidUrl, sha256, supportedAlgorithm } from './index.js';
+import { DisclosureFrame, Hasher, SDJWTPayload } from 'sd-jwt/dist/types/types';
+import { JWT, VCClaims } from './types';
+import { isValidUrl, supportedAlgorithm } from './util';
 
 export class Issuer {
   private hasher: Hasher;
@@ -22,13 +23,13 @@ export class Issuer {
 
     this.algorithm = algorithm;
     this.privateKey = privateKey;
-    this.hasher = hasher || sha256;
+    this.hasher = hasher;
   }
 
-  async createVCSDJWT(claims: VCClaims, SDJWTPayload: SDJWTPayload, SdVCClaims: DisclosureFrame = {}): Promise<JWT> {
+  async createVCSDJWT(claims: VCClaims, sdJWTPayload: SDJWTPayload, SdVCClaims: DisclosureFrame = {}): Promise<JWT> {
     this.validateVCClaims(claims);
 
-    this.validateSDJWTPayload(SDJWTPayload);
+    this.validateSDJWTPayload(sdJWTPayload);
 
     const getHasher = () => Promise.resolve(this.hasher);
     const getIssuerPrivateKey = () => Promise.resolve(this.privateKey);
@@ -39,12 +40,12 @@ export class Issuer {
           typ: Issuer.SD_JWT_TYP,
           alg: this.algorithm,
         },
-        payload: { ...SDJWTPayload, ...claims },
+        payload: { ...sdJWTPayload, ...claims },
         disclosureFrame: SdVCClaims,
         alg: this.algorithm,
         getHasher,
         getIssuerPrivateKey,
-        holderPublicKey: SDJWTPayload?.cnf?.jwk,
+        holderPublicKey: sdJWTPayload?.cnf?.jwk,
       });
 
       return jwt;
@@ -53,34 +54,34 @@ export class Issuer {
     }
   }
 
-  validateSDJWTPayload(SDJWTPayload: SDJWTPayload) {
-    if (!SDJWTPayload.iss || !isValidUrl(SDJWTPayload.iss)) {
+  validateSDJWTPayload(sdJWTPayload: SDJWTPayload) {
+    if (!sdJWTPayload.iss || !isValidUrl(sdJWTPayload.iss)) {
       throw new Error('Issuer iss is required and must be a valid URL');
     }
-    if (!SDJWTPayload.iat || typeof SDJWTPayload.iat !== 'number') {
+    if (!sdJWTPayload.iat || typeof sdJWTPayload.iat !== 'number') {
       throw new Error('Payload iat is required and must be a number');
     }
-    if (!SDJWTPayload.cnf || typeof SDJWTPayload.cnf !== 'object' || !SDJWTPayload.cnf.jwk) {
+    if (!sdJWTPayload.cnf || typeof sdJWTPayload.cnf !== 'object' || !sdJWTPayload.cnf.jwk) {
       throw new Error('Payload cnf is required and must be a JWK format');
     }
     if (
-      typeof SDJWTPayload.cnf.jwk !== 'object' ||
-      typeof SDJWTPayload.cnf.jwk.kty !== 'string' ||
-      typeof SDJWTPayload.cnf.jwk.crv !== 'string' ||
-      typeof SDJWTPayload.cnf.jwk.x !== 'string' ||
-      typeof SDJWTPayload.cnf.jwk.y !== 'string'
+      typeof sdJWTPayload.cnf.jwk !== 'object' ||
+      typeof sdJWTPayload.cnf.jwk.kty !== 'string' ||
+      typeof sdJWTPayload.cnf.jwk.crv !== 'string' ||
+      typeof sdJWTPayload.cnf.jwk.x !== 'string' ||
+      typeof sdJWTPayload.cnf.jwk.y !== 'string'
     ) {
       throw new Error('Payload cnf.jwk must be valid JWK format');
     }
 
-    if (SDJWTPayload.nbf && typeof SDJWTPayload.nbf !== 'number') {
+    if (sdJWTPayload.nbf && typeof sdJWTPayload.nbf !== 'number') {
       throw new Error('Payload nbf must be a number');
     }
-    if (SDJWTPayload.exp && typeof SDJWTPayload.exp !== 'number') {
+    if (sdJWTPayload.exp && typeof sdJWTPayload.exp !== 'number') {
       throw new Error('Payload exp must be a number');
     }
 
-    if (SDJWTPayload.sub && typeof SDJWTPayload.sub !== 'string') {
+    if (sdJWTPayload.sub && typeof sdJWTPayload.sub !== 'string') {
       throw new Error('Payload sub must be a string');
     }
   }

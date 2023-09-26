@@ -1,7 +1,7 @@
-import { randomBytes } from '@noble/hashes/utils';
+import { randomBytes } from 'crypto';
 import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, decodeJwt, importJWK, jwtVerify } from 'jose';
-import { JWT, PresentSDJWTPayload, bytesToBase64url, isValidUrl, supportedAlgorithm } from './index.js';
-import { CreateSDJWTPayload } from './types.js';
+import { CreateSDJWTPayload, JWT, PresentSDJWTPayload } from './types';
+import { isValidUrl, supportedAlgorithm } from './util';
 
 export class Holder {
   private privateKey: KeyLike | Uint8Array;
@@ -74,9 +74,7 @@ export class Holder {
     return { vcSDJWTWithkeyBindingJWT: `${sdJWT}${keyBindingJWT}`, nonce };
   }
 
-  generateNonce(): string {
-    const nonceBytes = 16;
-    const buffer = randomBytes(nonceBytes);
-    return bytesToBase64url(buffer);
+  generateNonce(length: number = 16): string {
+    return randomBytes(length).toString('base64');
   }
 }

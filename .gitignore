@@ -1,17 +1,7 @@
-node_modules
-lib
-esm
-dist
-.vscode/settings.json
-coverage
+# compiled output
+/dev
+/dist
+/node_modules
 
-*.log
-
-*.tgz
-*/**/.DS_Store
-/.DS_Store
-.rts2_cache_cjs
-.rts2_cache_es
-.rts2_cache_umd
-
-.idea/
+# OS
+.DS_Store

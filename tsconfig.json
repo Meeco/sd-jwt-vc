@@ -1,28 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "esnext",
-    "lib": [
-      "dom",
-      "es6",
-      "es2015.promise"
-    ],
+    "module": "commonjs",
     "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "lib",
-    "strict": true,
-    "moduleResolution": "node",
-    "types": [
-      "jest"
-    ],
-    "resolveJsonModule": true,
+    "removeComments": true,
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "target": "es2022",
+    "outDir": "./dev",
+    "baseUrl": "./",
+    "incremental": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
   },
-  "exclude": [
-    "**/__tests__/*",
-    "node_modules",
-    "lib"
-  ]
 }
