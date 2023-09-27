@@ -1,21 +1,29 @@
-import { KeyLike, generateKeyPair } from 'jose';
+import { generateKeyPair } from 'jose';
 
 import { DisclosureFrame, SDJWTPayload } from 'sd-jwt';
 import { Issuer } from './issuer';
-import { VCClaims } from './types';
-import { supportedAlgorithm } from './util';
+import { signerCallbackFn } from './test-utils/helpers';
+import { HasherConfig, SignerConfig, VCClaims } from './types';
+import { hasherCallbackFn, supportedAlgorithm } from './util';
 
 describe('Issuer', () => {
   let issuer: Issuer;
-  let privateKey: KeyLike | Uint8Array;
-  let algorithm: supportedAlgorithm;
+  let hasher: HasherConfig;
+  let signer: SignerConfig;
 
   beforeEach(async () => {
-    algorithm = supportedAlgorithm.EdDSA;
+    const keyPair = await generateKeyPair(supportedAlgorithm.EdDSA);
 
-    const keyPair = await generateKeyPair(algorithm);
-    privateKey = keyPair.privateKey;
-    issuer = new Issuer(privateKey, algorithm);
+    signer = {
+      algo: supportedAlgorithm.EdDSA,
+      callback: signerCallbackFn(keyPair.privateKey),
+    };
+    hasher = {
+      algo: 'sha256',
+      callback: hasherCallbackFn('sha256'),
+    };
+
+    issuer = new Issuer(signer, hasher);
   });
 
   it('should create a verifiable credential SD JWT', async () => {

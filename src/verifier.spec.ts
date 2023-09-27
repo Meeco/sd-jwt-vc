@@ -1,6 +1,7 @@
 import { JWK, importJWK } from 'jose';
 import { decodeJWT } from 'sd-jwt';
-import { defaultHashAlgorithm, hasherCallbackFn, kbVeriferCallbackFn, verifierCallbackFn } from './util';
+import { kbVeriferCallbackFn, verifierCallbackFn } from './test-utils/helpers';
+import { defaultHashAlgorithm, hasherCallbackFn } from './util';
 import { Verifier } from './verifier';
 
 describe('Verifier', () => {
