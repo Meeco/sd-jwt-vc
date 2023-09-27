@@ -1,11 +1,10 @@
 import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, decodeJwt, importJWK, jwtVerify } from 'jose';
-import { CreateSDJWTPayload, JWT, PresentSDJWTPayload } from './types';
+import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR } from './types';
 import { generateNonce, isValidUrl, supportedAlgorithm } from './util';
 
 export class Holder {
   private privateKey: KeyLike | Uint8Array;
   private algorithm: supportedAlgorithm;
-  private static SD_JWT_FORMAT_SEPARATOR = '~';
   private static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
 
   constructor(privateKey: KeyLike | Uint8Array, algorithm: supportedAlgorithm) {
@@ -62,11 +61,11 @@ export class Holder {
       throw new Error('Invalid forVerifier parameter');
     }
 
-    if (typeof sdJWT !== 'string' || !sdJWT.includes(Holder.SD_JWT_FORMAT_SEPARATOR)) {
+    if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
       throw new Error('Invalid sdJWT parameter');
     }
 
-    const [sdJWTPayload, _] = sdJWT.split(Holder.SD_JWT_FORMAT_SEPARATOR);
+    const [sdJWTPayload, _] = sdJWT.split(SD_JWT_FORMAT_SEPARATOR);
     const jwt: JWTPayload = decodeJwt(sdJWTPayload);
     const { jwk: holderPublicKey } = (jwt as CreateSDJWTPayload).cnf || {};
 

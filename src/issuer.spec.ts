@@ -49,7 +49,6 @@ describe('Issuer', () => {
     const sdVCClaimsDisclosureFrame: DisclosureFrame = { person: { _sd: ['name', 'age'] } };
 
     const jwt = await issuer.createVCSDJWT(vcClaims, payload, sdVCClaimsDisclosureFrame);
-    console.log(jwt);
 
     expect(jwt).toBeDefined();
     expect(typeof jwt).toBe('string');
