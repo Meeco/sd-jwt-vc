@@ -1,117 +1,100 @@
-import { JWK, KeyLike, importJWK } from 'jose';
-import { SDJWTPayload, decodeJWT, verifySDJWT } from 'sd-jwt';
+import { JWK } from 'jose';
+import {
+  Hasher,
+  KeyBindingVerifier,
+  SDJWTPayload,
+  Verifier as VerifierCallbackFn,
+  decodeJWT,
+  verifySDJWT,
+} from 'sd-jwt';
 import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types';
-import { defaultHashAlgorithm, hasherCallbackFn, isValidUrl, kbVeriferCallbackFn, verifierCallbackFn } from './util';
+import { isValidUrl } from './util';
 
 export class Verifier {
   /**
-   * Verifies a Verifiable Credential SD-JWT.
-   * @param sdJWT The Verifiable Credential SD-JWT to verify.
-   * @param expectedAudienceValue The expected audience value.
-   * @param expectedNonce The expected nonce.
-   * @param issuerPublicKeyJWK The issuer's public key JWK.
-   * @returns The SDJWTPayload if the verification is successful.
-   * @throws An error if the verification fails.
+   * Verifies a VC SD-JWT.
+   * @param sdJWT The VC SD-JWT.
+   * @param verifierCallbackFn The verifier callback function.
+   * @param hasherCallbackFn The hasher callback function.
+   * @param kbVeriferCallbackFn The key binding verifier callback function.
+   * @returns The VC SD-JWT payload.
    */
   async verifyVerifiableCredentialSDJWT(
     sdJWT: JWT,
-    expectedAudienceValue: string,
-    expectedNonce: string,
-    issuerPublicKeyJWK?: JWK,
+    verifierCallbackFn: VerifierCallbackFn,
+    hasherCallbackFn: Hasher,
+    kbVeriferCallbackFn: KeyBindingVerifier,
   ): Promise<SDJWTPayload> {
-    this.validateInputs(sdJWT, expectedAudienceValue, expectedNonce);
-
-    const s = sdJWT.split(SD_JWT_FORMAT_SEPARATOR);
-    const jwt = decodeJWT(s.shift() || '');
-
-    let issuerPubKey: KeyLike | Uint8Array;
-
-    if (issuerPublicKeyJWK) {
-      issuerPubKey = await importJWK(issuerPublicKeyJWK);
-    } else if (jwt.payload.iss && isValidUrl(jwt.payload.iss)) {
-      issuerPubKey = await this.fetchIssuerPublicKeyFromIss(jwt);
-    } else {
-      throw new Error('Issuer public key JWK not found');
-    }
-
-    if (!issuerPubKey) {
-      throw new Error('issuerPubKey is required to verify the SD-JWT');
-    }
-
-    const result = await verifySDJWT(
-      sdJWT,
-      verifierCallbackFn(issuerPubKey),
-      () => Promise.resolve(hasherCallbackFn(defaultHashAlgorithm)),
-      {
+    try {
+      const result = await verifySDJWT(sdJWT, verifierCallbackFn, () => Promise.resolve(hasherCallbackFn), {
         kb: {
-          verifier: kbVeriferCallbackFn(expectedAudienceValue, expectedNonce),
+          verifier: kbVeriferCallbackFn,
         },
-      },
-    );
-
-    return result;
-  }
-
-  /**
-   * Validates the inputs for the verifyVerifiableCredentialSDJWT method.
-   * @param sdJWT The Verifiable Credential SD-JWT to verify.
-   * @param expectedAudienceValue The expected audience value.
-   * @param expectedNonce The expected nonce.
-   * @throws An error if any of the inputs are invalid.
-   */
-  private validateInputs(sdJWT: JWT, expectedAudienceValue: string, expectedNonce: string) {
-    if (!sdJWT) {
-      throw new Error('sdJWT is required');
-    }
-
-    if (typeof sdJWT !== 'string') {
-      throw new Error('sdJWT must be a string');
-    }
-
-    if (!expectedAudienceValue) {
-      throw new Error('expectedAudienceValue is required');
-    }
-
-    if (typeof expectedAudienceValue !== 'string') {
-      throw new Error('expectedAudienceValue must be a string');
-    }
-
-    if (!expectedNonce) {
-      throw new Error('expectedNonce is required');
+      });
+      return result;
+    } catch (error) {
+      console.error(`Error verifying VC SD-JWT: ${error}`);
+      throw error;
     }
   }
 
   /**
    * Fetches the issuer's public key JWK if it is not provided.
    * @param jwt The decoded JWT.
+   * @param issuerPath The issuer's well-known URI suffix. For example, ' jwt-issuer/user/1234' or 'jwt-issuer'.
    * @throws An error if the issuer's public key JWK cannot be fetched.
    * @returns The issuer's public key JWK.
    */
-  private async fetchIssuerPublicKeyFromIss(jwt: any): Promise<KeyLike | Uint8Array> {
+  public async fetchIssuerPublicKeyFromIss(sdJwtVC: JWT, issuerPath: string): Promise<JWK> {
+    const s = sdJwtVC.split(SD_JWT_FORMAT_SEPARATOR);
+    const jwt = decodeJWT(s.shift() || '');
+
+    const wellKnownPath = `.well-known/${issuerPath}`;
+
     if (!jwt.payload.iss || !isValidUrl(jwt.payload.iss)) {
       throw new Error('Invalid issuer URL');
     }
 
-    const response = await fetch(jwt.payload.iss);
+    const url = new URL(jwt.payload.iss);
+    const baseUrl = `${url.protocol}//${url.host}`;
+    const issuerUrl = `${baseUrl}/${wellKnownPath}`;
+
+    const response = await fetch(issuerUrl);
     const responseJson = await response.json();
+
+    if (!responseJson) {
+      throw new Error('Issuer response not found');
+    }
+    if (!responseJson.issuer || responseJson.issuer !== jwt.payload.iss) {
+      throw new Error('Issuer response does not contain the correct issuer');
+    }
 
     let issuerPublicKeyJWK: JWK | undefined;
 
-    if (responseJson?.jwks_uri) {
+    if (responseJson.jwks_uri) {
       const jwksResponse = await fetch(responseJson.jwks_uri);
       const jwksResponseJson = await jwksResponse.json();
-
-      issuerPublicKeyJWK = jwt.header.kid
-        ? jwksResponseJson.keys.find((key: any) => key.kid === jwt.header.kid)
-        : jwksResponseJson?.keys[0];
+      issuerPublicKeyJWK = this.getIssuerPublicKeyJWK(jwksResponseJson, jwt.header.kid);
     } else {
-      issuerPublicKeyJWK = responseJson?.jwks?.keys[0];
+      issuerPublicKeyJWK = this.getIssuerPublicKeyJWK(responseJson.jwks, jwt.header.kid);
     }
 
     if (!issuerPublicKeyJWK) {
       throw new Error('Issuer public key JWK not found');
     }
 
-    return importJWK(issuerPublicKeyJWK);
+    return issuerPublicKeyJWK;
+  }
+
+  private getIssuerPublicKeyJWK(jwks: any, kid?: string): JWK | undefined {
+    if (!jwks || !jwks.keys) {
+      throw new Error('Issuer response does not contain jwks or jwks_uri');
+    }
+
+    if (kid) {
+      return jwks.keys.find((key: any) => key.kid === kid);
+    } else {
+      return jwks.keys[0];
+    }
   }
 }

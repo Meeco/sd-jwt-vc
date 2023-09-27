@@ -1,13 +1,6 @@
 import { KeyLike, generateKeyPair, importJWK } from 'jose';
-import { verifySDJWT } from 'sd-jwt';
 import { Holder } from './holder';
-import {
-  defaultHashAlgorithm,
-  hasherCallbackFn,
-  kbVeriferCallbackFn,
-  supportedAlgorithm,
-  verifierCallbackFn,
-} from './util';
+import { supportedAlgorithm } from './util';
 
 describe('Holder', () => {
   let holder: Holder;
@@ -23,7 +16,6 @@ describe('Holder', () => {
 
   it('should get KeyBindingJWT', async () => {
     const { keyBindingJWT } = await holder.getKeyBindingJWT('https://valid.verifier.url');
-    // console.log(jwt);
 
     expect(keyBindingJWT).toBeDefined();
     expect(typeof keyBindingJWT).toBe('string');
@@ -54,24 +46,7 @@ describe('Holder', () => {
       issuedSDJWT,
     );
 
-    console.log('vcSDJWTWithkeyBindingJWT: ' + vcSDJWTWithkeyBindingJWT);
-
-    const issuerPubKey = await importJWK({
-      crv: 'Ed25519',
-      x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
-      kty: 'OKP',
-    });
-
-    const result = await verifySDJWT(
-      vcSDJWTWithkeyBindingJWT,
-      verifierCallbackFn(issuerPubKey),
-      () => Promise.resolve(hasherCallbackFn(defaultHashAlgorithm)),
-      {
-        kb: {
-          verifier: kbVeriferCallbackFn('https://valid.verifier.url', nonce),
-        },
-      },
-    );
-    console.log(result);
+    // console.log('vcSDJWTWithkeyBindingJWT: ' + vcSDJWTWithkeyBindingJWT);
+    // console.log('nonce: ' + nonce);
   });
 });
