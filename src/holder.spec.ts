@@ -9,7 +9,7 @@ describe('Holder', () => {
   beforeEach(async () => {
     const keyPair = await generateKeyPair(supportedAlgorithm.ES256);
     holder = new Holder({
-      algo: supportedAlgorithm.ES256,
+      alg: supportedAlgorithm.ES256,
       callback: signerCallbackFn(keyPair.privateKey),
     });
   });
@@ -38,7 +38,7 @@ describe('Holder', () => {
 
     const pk = await importJWK(privateKey);
     const holder = new Holder({
-      algo: supportedAlgorithm.ES256,
+      alg: supportedAlgorithm.ES256,
       callback: signerCallbackFn(pk),
     });
     const issuedSDJWT =

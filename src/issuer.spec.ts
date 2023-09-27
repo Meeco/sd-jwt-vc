@@ -15,11 +15,11 @@ describe('Issuer', () => {
     const keyPair = await generateKeyPair(supportedAlgorithm.EdDSA);
 
     signer = {
-      algo: supportedAlgorithm.EdDSA,
+      alg: supportedAlgorithm.EdDSA,
       callback: signerCallbackFn(keyPair.privateKey),
     };
     hasher = {
-      algo: 'sha256',
+      alg: 'sha256',
       callback: hasherCallbackFn('sha256'),
     };
 

@@ -30,11 +30,11 @@ import { hasherCallbackFn, supportedAlgorithm } from './util';
 const keyPair = await generateKeyPair(supportedAlgorithm.EdDSA);
 
 let hasher: HasherConfig = {
-  algo: 'sha256',
+  alg: 'sha256',
   callback: hasherCallbackFn('sha256'),
 };
 let signer: SignerConfig = {
-  algo: supportedAlgorithm.EdDSA,
+  alg: supportedAlgorithm.EdDSA,
   callback: signerCallbackFn(keyPair.privateKey),
 };
 
@@ -42,10 +42,10 @@ let issuer = new Issuer(signer, hasher);
 ```
 
 - singner: The signer configuration object. It contains the following properties:
-  - algo: The algorithm to use for signing the SD JWTs. Must be one of the supported algorithms ('EdDSA', 'ES256', 'ES256K', 'ES384', 'ES512', 'PS256', 'PS384', 'PS512', 'RS256', 'RS384', 'RS512').
+  - alg: The algorithm to use for signing the SD JWTs. Must be one of the supported algorithms ('EdDSA', 'ES256', 'ES256K', 'ES384', 'ES512', 'PS256', 'PS384', 'PS512', 'RS256', 'RS384', 'RS512').
   - callback: The callback function that will be used to sign the SD JWTs. It must be a function that takes a string and returns a string.
 - hasher: The hasher configuration object. It contains the following properties:
-  - algo: The algorithm to use for hashing the SD JWTs. Must be one of the available algorithms supported by OpenSSL.
+  - alg: The algorithm to use for hashing the SD JWTs. Must be one of the available algorithms supported by OpenSSL.
   - callback: The callback function that will be used to hash the SD JWTs. It must be a function that takes a string and returns a string.
 
 #### createVCSDJWT
@@ -111,7 +111,7 @@ const privateKey = {
 
 const pk = await importJWK(privateKey);
 let signer: SignerConfig = {
-  algo: supportedAlgorithm.EdDSA,
+  alg: supportedAlgorithm.EdDSA,
   callback: signerCallbackFn(pk),
 };
 const holder = new Holder(signer);

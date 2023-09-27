@@ -11,14 +11,14 @@ export class Issuer {
     if (!signer?.callback || typeof signer?.callback !== 'function') {
       throw new Error('Signer function is required');
     }
-    if (!signer?.algo || typeof signer?.algo !== 'string') {
+    if (!signer?.alg || typeof signer?.alg !== 'string') {
       throw new Error('algo used for Signer function is required');
     }
 
     if (!hasher?.callback || typeof hasher?.callback !== 'function') {
       throw new Error('Hasher function is required');
     }
-    if (!hasher?.algo || typeof hasher?.algo !== 'string') {
+    if (!hasher?.alg || typeof hasher?.alg !== 'string') {
       throw new Error('algo used for Hasher function is required');
     }
 
@@ -49,14 +49,14 @@ export class Issuer {
       const jwt = await issueSDJWT(
         {
           typ: Issuer.SD_JWT_TYP,
-          alg: this.signer.algo,
+          alg: this.signer.alg,
         },
         { ...sdJWTPayload, ...claims },
         sdVCClaimsDisclosureFrame,
         {
           signer: this.signer.callback,
           hash: {
-            alg: this.hasher.algo,
+            alg: this.hasher.alg,
             callback: this.hasher.callback,
           },
           cnf: sdJWTPayload?.cnf,

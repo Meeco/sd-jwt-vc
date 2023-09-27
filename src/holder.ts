@@ -10,7 +10,7 @@ export class Holder {
     if (!signer?.callback || typeof signer?.callback !== 'function') {
       throw new Error('Signer function is required');
     }
-    if (!signer?.algo || typeof signer?.algo !== 'string') {
+    if (!signer?.alg || typeof signer?.alg !== 'string') {
       throw new Error('algo used for Signer function is required');
     }
 
@@ -31,7 +31,7 @@ export class Holder {
     try {
       const protectedHeader = {
         typ: Holder.SD_KEY_BINDING_JWT_TYP,
-        alg: this.signer.algo,
+        alg: this.signer.alg,
       };
 
       const presentSDJWTPayload: PresentSDJWTPayload = {

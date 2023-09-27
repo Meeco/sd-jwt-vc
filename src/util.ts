@@ -36,9 +36,9 @@ export function isValidUrl(url: string): boolean {
  * @param algo
  * @returns
  */
-export function hasherCallbackFn(algo: string = defaultHashAlgorithm): Hasher {
+export function hasherCallbackFn(alg: string = defaultHashAlgorithm): Hasher {
   return (data: string): string => {
-    const digest = createHash(algo).update(data).digest();
+    const digest = createHash(alg).update(data).digest();
     return base64encode(digest);
   };
 }
