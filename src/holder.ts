@@ -18,10 +18,11 @@ export class Holder {
   }
 
   /**
-   * Gets the key binding JWT for the specified verifier.
+   * Gets a key binding JWT.
    * @param forVerifier The verifier to get the key binding JWT for.
-   * @returns The key binding JWT and nonce.
-   * @throws An error if the key binding JWT could not be created.
+   * @param nonce The nonce to use.
+   * @throws An error if the key binding JWT cannot be created.
+   * @returns The key binding JWT.
    */
   async getKeyBindingJWT(
     forVerifier: string,
@@ -47,11 +48,12 @@ export class Holder {
   }
 
   /**
-   * Presents a VC as an SD-JWT token with a key binding JWT.
-   * @param forVerifier The verifier to present the VC to.
+   * Presents a VC SD-JWT with a key binding JWT.
+   * @param forVerifier The verifier to present the VC SD-JWT to.
    * @param sdJWT The SD-JWT to present.
-   * @returns The VC as an SD-JWT token with a key binding JWT and nonce.
-   * @throws An error if the forVerifier or sdJWT parameters are invalid, or if the key binding JWT could not be verified.
+   * @param keyBindingJWTVerifier The key binding JWT verifier callback function.
+   * @throws An error if the VC SD-JWT cannot be presented.
+   * @returns The VC SD-JWT with the key binding JWT.
    */
   async presentVerifiableCredentialSDJWT(
     forVerifier: string,

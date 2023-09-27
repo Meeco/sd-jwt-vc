@@ -27,12 +27,13 @@ export class Issuer {
   }
 
   /**
-   * Creates a VC as an SD-JWT token.
+   * Creates a VC SD-JWT.
    * @param claims The VC claims.
    * @param sdJWTPayload The SD-JWT payload.
-   * @param sdVCClaimsDisclosureFrame The SD-VC claims.
+   * @param sdVCClaimsDisclosureFrame The SD-VC claims disclosure frame.
    * @param saltGenerator The salt generator.
-   * @returns The VC as an SD-JWT token.
+   * @throws An error if the VC SD-JWT cannot be created.
+   * @returns The VC SD-JWT.
    */
   async createVCSDJWT(
     claims: VCClaims,

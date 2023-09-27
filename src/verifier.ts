@@ -12,12 +12,13 @@ import { isValidUrl } from './util';
 
 export class Verifier {
   /**
-   * Verifies a VC SD-JWT.
-   * @param sdJWT The VC SD-JWT.
+   * Verifies a SD-JWT.
+   * @param sdJWT The SD-JWT to verify.
    * @param verifierCallbackFn The verifier callback function.
    * @param hasherCallbackFn The hasher callback function.
    * @param kbVeriferCallbackFn The key binding verifier callback function.
-   * @returns The VC SD-JWT payload.
+   * @throws An error if the SD-JWT cannot be verified.
+   * @returns The decoded SD-JWT payload.
    */
   async verifyVerifiableCredentialSDJWT(
     sdJWT: JWT,
@@ -39,11 +40,11 @@ export class Verifier {
   }
 
   /**
-   * Fetches the issuer's public key JWK if it is not provided.
-   * @param jwt The decoded JWT.
-   * @param issuerPath The issuer's well-known URI suffix. For example, ' jwt-issuer/user/1234' or 'jwt-issuer'.
-   * @throws An error if the issuer's public key JWK cannot be fetched.
-   * @returns The issuer's public key JWK.
+   * Fetches the issuer public key from the issuer.
+   * @param sdJwtVC The SD-JWT to verify.
+   * @param issuerPath The issuer path to use.
+   * @throws An error if the issuer public key cannot be fetched.
+   * @returns The issuer public key.
    */
   public async fetchIssuerPublicKeyFromIss(sdJwtVC: JWT, issuerPath: string): Promise<JWK> {
     const s = sdJwtVC.split(SD_JWT_FORMAT_SEPARATOR);
@@ -86,6 +87,13 @@ export class Verifier {
     return issuerPublicKeyJWK;
   }
 
+  /**
+   * Gets the issuer public key JWK.
+   * @param jwks The jwks to use.
+   * @param kid The kid to use.
+   * @throws An error if the issuer public key JWK cannot be found.
+   * @returns The issuer public key JWK.
+   */
   private getIssuerPublicKeyJWK(jwks: any, kid?: string): JWK | undefined {
     if (!jwks || !jwks.keys) {
       throw new Error('Issuer response does not contain jwks or jwks_uri');
