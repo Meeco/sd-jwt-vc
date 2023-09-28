@@ -6,6 +6,10 @@ export class Holder {
   private signer: SignerConfig;
   private static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
 
+  /**
+   * Signer callback function used for signing key binding JWT.
+   * @param signer
+   */
   constructor(signer: SignerConfig) {
     if (!signer?.callback || typeof signer?.callback !== 'function') {
       throw new Error('Signer function is required');
@@ -19,7 +23,7 @@ export class Holder {
 
   /**
    * Gets a key binding JWT.
-   * @param forVerifier The verifier to get the key binding JWT for.
+   * @param aud The verifier to present the VC SD-JWT to. e.g. https://example.com/verifier
    * @param nonce The nonce to use.
    * @throws An error if the key binding JWT cannot be created.
    * @returns The key binding JWT.
@@ -49,18 +53,18 @@ export class Holder {
 
   /**
    * Presents a VC SD-JWT with a key binding JWT.
-   * @param forVerifier The verifier to present the VC SD-JWT to.
+   * @param aud The verifier to present the VC SD-JWT to. e.g. https://example.com/verifier
    * @param sdJWT The SD-JWT to present.
    * @param keyBindingJWTVerifier The key binding JWT verifier callback function.
    * @throws An error if the VC SD-JWT cannot be presented.
    * @returns The VC SD-JWT with the key binding JWT.
    */
   async presentVerifiableCredentialSDJWT(
-    forVerifier: string,
+    aud: string,
     sdJWT: JWT,
     keyBindingJWTVerifier: KeyBindingVerifier,
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce: string }> {
-    if (typeof forVerifier !== 'string' || !forVerifier || !isValidUrl(forVerifier)) {
+    if (typeof aud !== 'string' || !aud || !isValidUrl(aud)) {
       throw new Error('Invalid forVerifier parameter');
     }
 
@@ -77,7 +81,7 @@ export class Holder {
       throw new Error('No holder public key in SD-JWT');
     }
 
-    const { nonce, keyBindingJWT } = await this.getKeyBindingJWT(forVerifier);
+    const { nonce, keyBindingJWT } = await this.getKeyBindingJWT(aud);
 
     try {
       await keyBindingJWTVerifier(keyBindingJWT, holderPublicKeyJWK);
