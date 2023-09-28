@@ -1,12 +1,12 @@
-import { KeyBindingVerifier, base64encode, decodeJWT, decodeSDJWT } from 'sd-jwt';
+import { KeyBindingVerifier, decodeJWT, decodeSDJWT } from 'sd-jwt';
 import {
   CreateSDJWTPayload,
+  UndisclosedList as DisclosedList,
   JWT,
   NonceGenerator,
   PresentSDJWTPayload,
   SD_JWT_FORMAT_SEPARATOR,
   SignerConfig,
-  UndisclosedList,
 } from './types';
 import { isValidUrl, nonceGeneratorCallbackFn } from './util';
 
@@ -73,7 +73,8 @@ export class Holder {
     aud: string,
     sdJWT: JWT,
     keyBindingJWTVerifier: KeyBindingVerifier,
-    nonceGenerator: NonceGenerator = nonceGeneratorCallbackFn(),
+    nonceGenerator: NonceGenerator,
+    disclosedList: DisclosedList[],
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce: string }> {
     if (typeof aud !== 'string' || !aud || !isValidUrl(aud)) {
       throw new Error('Invalid forVerifier parameter');
@@ -100,21 +101,21 @@ export class Holder {
       throw new Error('Failed to verify key binding JWT: SD JWT holder public key does not match private key');
     }
 
-    return { vcSDJWTWithkeyBindingJWT: `${sdJWT}${keyBindingJWT}`, nonce };
+    let vcSDJWTWithkeyBindingJWT = `${sdJWT}${keyBindingJWT}`;
+
+    vcSDJWTWithkeyBindingJWT = this.revealDisclosures(vcSDJWTWithkeyBindingJWT, disclosedList);
+
+    return { vcSDJWTWithkeyBindingJWT: vcSDJWTWithkeyBindingJWT, nonce };
   }
 
   /**
    * Reveals the disclosed claims in the VC SD-JWT.
    * @param sdJWT The SD-JWT to reveal the claims in.
-   * @param undisclosedList The list of undisclosed claims.
+   * @param disclosedList The list of disclosed claims.
    * @throws An error if the undisclosed claims cannot be revealed.
    * @returns The VC SD-JWT with the disclosed claims.
    */
-  revealDisclosures(sdJWT: JWT, undisclosedList: UndisclosedList[]): JWT {
-    if (undisclosedList.length === 0) {
-      return sdJWT;
-    }
-
+  revealDisclosures(sdJWT: JWT, disclosedList: DisclosedList[]): JWT {
     if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
       throw new Error('Invalid sdJWT parameter');
     }
@@ -122,23 +123,27 @@ export class Holder {
     const { disclosures, keyBindingJWT } = decodeSDJWT(sdJWT);
 
     if (!disclosures) {
-      throw new Error('No disclosures in SD-JWT');
+      return sdJWT;
+    }
+
+    const compactJWT = sdJWT.split(SD_JWT_FORMAT_SEPARATOR)[0];
+
+    if (!disclosedList || disclosedList.length === 0) {
+      return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}${keyBindingJWT}`;
     }
 
     const revealedDisclosures = disclosures.filter((disclosure) => {
-      return undisclosedList.some((undisclosed) => {
+      return disclosedList.some((undisclosed) => {
         return (
-          (undisclosed.key && disclosure.key !== undisclosed.key) ||
-          (!undisclosed.key && undisclosed.value && disclosure.value !== undisclosed.value)
+          (undisclosed.key && disclosure.key === undisclosed.key && disclosure.value === undisclosed.value) ||
+          (!undisclosed.key && undisclosed.value && disclosure.value === undisclosed.value)
         );
       });
     });
 
     const revealedDisclosuresEncoded = revealedDisclosures
-      .map((disclosure) => base64encode(JSON.stringify(disclosure)))
+      .map((disclosure) => disclosure.disclosure)
       .join(SD_JWT_FORMAT_SEPARATOR);
-
-    const compactJWT = sdJWT.split(SD_JWT_FORMAT_SEPARATOR)[0];
 
     return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}${revealedDisclosuresEncoded}${SD_JWT_FORMAT_SEPARATOR}${keyBindingJWT}`;
   }

@@ -2,7 +2,7 @@ import { generateKeyPair, importJWK } from 'jose';
 import { Holder } from './holder';
 import { signerCallbackFn, veriferCallbackFn } from './test-utils/helpers';
 import { SignerConfig } from './types';
-import { supportedAlgorithm } from './util';
+import { nonceGeneratorCallbackFn, supportedAlgorithm } from './util';
 
 describe('Holder', () => {
   let holder: Holder;
@@ -47,13 +47,21 @@ describe('Holder', () => {
     const issuedSDJWT =
       'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
 
+    const disclosedList = [
+      {
+        key: 'name',
+        value: 'test person',
+      },
+    ];
     const { vcSDJWTWithkeyBindingJWT, nonce } = await holder.presentVerifiableCredentialSDJWT(
       'https://valid.verifier.url',
       issuedSDJWT,
       veriferCallbackFn(),
+      nonceGeneratorCallbackFn(),
+      disclosedList,
     );
 
-    // console.log('vcSDJWTWithkeyBindingJWT: ' + vcSDJWTWithkeyBindingJWT);
-    // console.log('nonce: ' + nonce);
+    console.log('vcSDJWTWithkeyBindingJWT: ' + vcSDJWTWithkeyBindingJWT);
+    console.log('nonce: ' + nonce);
   });
 });
