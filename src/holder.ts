@@ -7,7 +7,7 @@ export class Holder {
   private static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
 
   /**
-   * Signer callback function used for signing key binding JWT.
+   * Signer Config with callback function used for signing key binding JWT.
    * @param signer
    */
   constructor(signer: SignerConfig) {
@@ -28,10 +28,7 @@ export class Holder {
    * @throws An error if the key binding JWT cannot be created.
    * @returns The key binding JWT.
    */
-  async getKeyBindingJWT(
-    forVerifier: string,
-    nonce: string = generateNonce(),
-  ): Promise<{ keyBindingJWT: JWT; nonce: string }> {
+  async getKeyBindingJWT(aud: string, nonce: string = generateNonce()): Promise<{ keyBindingJWT: JWT; nonce: string }> {
     try {
       const protectedHeader = {
         typ: Holder.SD_KEY_BINDING_JWT_TYP,
@@ -39,7 +36,7 @@ export class Holder {
       };
 
       const presentSDJWTPayload: PresentSDJWTPayload = {
-        aud: forVerifier,
+        aud: aud,
         nonce,
         iat: Date.now(),
       };
