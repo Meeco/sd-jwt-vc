@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'crypto';
 
 import { Hasher, base64encode } from 'sd-jwt';
+import { NonceGenerator } from './types';
 
 export enum supportedAlgorithm {
   EdDSA = 'EdDSA',
@@ -41,6 +42,10 @@ export function hasherCallbackFn(alg: string = defaultHashAlgorithm): Hasher {
     const digest = createHash(alg).update(data).digest();
     return base64encode(digest);
   };
+}
+
+export function nonceGeneratorCallbackFn(length: number = 16): NonceGenerator {
+  return () => generateNonce(length);
 }
 
 export function generateNonce(length: number = 16): string {

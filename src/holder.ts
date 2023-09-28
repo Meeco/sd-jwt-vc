@@ -1,6 +1,14 @@
-import { KeyBindingVerifier, decodeJWT } from 'sd-jwt';
-import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR, SignerConfig } from './types';
-import { generateNonce, isValidUrl } from './util';
+import { KeyBindingVerifier, base64encode, decodeJWT, decodeSDJWT } from 'sd-jwt';
+import {
+  CreateSDJWTPayload,
+  JWT,
+  NonceGenerator,
+  PresentSDJWTPayload,
+  SD_JWT_FORMAT_SEPARATOR,
+  SignerConfig,
+  UndisclosedList,
+} from './types';
+import { isValidUrl, nonceGeneratorCallbackFn } from './util';
 
 export class Holder {
   private signer: SignerConfig;
@@ -28,8 +36,13 @@ export class Holder {
    * @throws An error if the key binding JWT cannot be created.
    * @returns The key binding JWT.
    */
-  async getKeyBindingJWT(aud: string, nonce: string = generateNonce()): Promise<{ keyBindingJWT: JWT; nonce: string }> {
+  async getKeyBindingJWT(
+    aud: string,
+    nonceGenerator: NonceGenerator = nonceGeneratorCallbackFn(),
+  ): Promise<{ keyBindingJWT: JWT; nonce: string }> {
     try {
+      const nonce = nonceGenerator();
+
       const protectedHeader = {
         typ: Holder.SD_KEY_BINDING_JWT_TYP,
         alg: this.signer.alg,
@@ -60,6 +73,7 @@ export class Holder {
     aud: string,
     sdJWT: JWT,
     keyBindingJWTVerifier: KeyBindingVerifier,
+    nonceGenerator: NonceGenerator = nonceGeneratorCallbackFn(),
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce: string }> {
     if (typeof aud !== 'string' || !aud || !isValidUrl(aud)) {
       throw new Error('Invalid forVerifier parameter');
@@ -78,7 +92,7 @@ export class Holder {
       throw new Error('No holder public key in SD-JWT');
     }
 
-    const { nonce, keyBindingJWT } = await this.getKeyBindingJWT(aud);
+    const { keyBindingJWT, nonce } = await this.getKeyBindingJWT(aud, nonceGenerator);
 
     try {
       await keyBindingJWTVerifier(keyBindingJWT, holderPublicKeyJWK);
@@ -87,5 +101,45 @@ export class Holder {
     }
 
     return { vcSDJWTWithkeyBindingJWT: `${sdJWT}${keyBindingJWT}`, nonce };
+  }
+
+  /**
+   * Reveals the disclosed claims in the VC SD-JWT.
+   * @param sdJWT The SD-JWT to reveal the claims in.
+   * @param undisclosedList The list of undisclosed claims.
+   * @throws An error if the undisclosed claims cannot be revealed.
+   * @returns The VC SD-JWT with the disclosed claims.
+   */
+  revealDisclosures(sdJWT: JWT, undisclosedList: UndisclosedList[]): JWT {
+    if (undisclosedList.length === 0) {
+      return sdJWT;
+    }
+
+    if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
+      throw new Error('Invalid sdJWT parameter');
+    }
+
+    const { disclosures, keyBindingJWT } = decodeSDJWT(sdJWT);
+
+    if (!disclosures) {
+      throw new Error('No disclosures in SD-JWT');
+    }
+
+    const revealedDisclosures = disclosures.filter((disclosure) => {
+      return undisclosedList.some((undisclosed) => {
+        return (
+          (undisclosed.key && disclosure.key !== undisclosed.key) ||
+          (!undisclosed.key && undisclosed.value && disclosure.value !== undisclosed.value)
+        );
+      });
+    });
+
+    const revealedDisclosuresEncoded = revealedDisclosures
+      .map((disclosure) => base64encode(JSON.stringify(disclosure)))
+      .join(SD_JWT_FORMAT_SEPARATOR);
+
+    const compactJWT = sdJWT.split(SD_JWT_FORMAT_SEPARATOR)[0];
+
+    return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}${revealedDisclosuresEncoded}${SD_JWT_FORMAT_SEPARATOR}${keyBindingJWT}`;
   }
 }

@@ -59,3 +59,7 @@ export type SignerConfig = {
 export interface JSONWebKeySet {
   keys: JWK[];
 }
+
+export type NonceGenerator = (length?: number) => string;
+
+export type UndisclosedList = { key?: string; value: string };
