@@ -117,7 +117,7 @@ export class Holder {
    */
   revealDisclosures(sdJWT: JWT, disclosedList: DisclosedList[]): JWT {
     if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
-      throw new Error('Invalid sdJWT parameter');
+      throw new Error('No disclosures in SD-JWT');
     }
 
     const { disclosures, keyBindingJWT } = decodeSDJWT(sdJWT);
