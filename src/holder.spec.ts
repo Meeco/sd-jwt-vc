@@ -1,8 +1,8 @@
 import { generateKeyPair, importJWK } from 'jose';
 import { Holder } from './holder';
-import { signerCallbackFn, veriferCallbackFn } from './test-utils/helpers';
+import { nonceGeneratorCallbackFn, signerCallbackFn, veriferCallbackFn } from './test-utils/helpers';
 import { SignerConfig } from './types';
-import { nonceGeneratorCallbackFn, supportedAlgorithm } from './util';
+import { supportedAlgorithm } from './util';
 
 describe('Holder', () => {
   let holder: Holder;
@@ -16,7 +16,7 @@ describe('Holder', () => {
   });
 
   it('should get KeyBindingJWT', async () => {
-    const { keyBindingJWT } = await holder.getKeyBindingJWT('https://valid.verifier.url');
+    const { keyBindingJWT } = await holder.getKeyBindingJWT('https://valid.verifier.url', nonceGeneratorCallbackFn());
 
     expect(keyBindingJWT).toBeDefined();
     expect(typeof keyBindingJWT).toBe('string');

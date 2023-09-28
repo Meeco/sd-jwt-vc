@@ -7,8 +7,8 @@ import {
   PresentSDJWTPayload,
   SD_JWT_FORMAT_SEPARATOR,
   SignerConfig,
-} from './types';
-import { isValidUrl, nonceGeneratorCallbackFn } from './util';
+} from './types.js';
+import { isValidUrl } from './util.js';
 
 export class Holder {
   private signer: SignerConfig;
@@ -36,10 +36,7 @@ export class Holder {
    * @throws An error if the key binding JWT cannot be created.
    * @returns The key binding JWT.
    */
-  async getKeyBindingJWT(
-    aud: string,
-    nonceGenerator: NonceGenerator = nonceGeneratorCallbackFn(),
-  ): Promise<{ keyBindingJWT: JWT; nonce: string }> {
+  async getKeyBindingJWT(aud: string, nonceGenerator: NonceGenerator): Promise<{ keyBindingJWT: JWT; nonce: string }> {
     try {
       const nonce = nonceGenerator();
 

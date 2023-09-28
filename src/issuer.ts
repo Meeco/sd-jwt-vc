@@ -1,6 +1,6 @@
 import { DisclosureFrame, SDJWTPayload, SaltGenerator, issueSDJWT } from 'sd-jwt';
-import { HasherConfig, JWT, SignerConfig, VCClaims } from './types';
-import { isValidUrl } from './util';
+import { HasherConfig, JWT, SignerConfig, VCClaims } from './types.js';
+import { isValidUrl } from './util.js';
 
 export class Issuer {
   private hasher: HasherConfig;

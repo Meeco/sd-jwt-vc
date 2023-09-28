@@ -2,9 +2,9 @@ import { generateKeyPair } from 'jose';
 
 import { DisclosureFrame, SDJWTPayload } from 'sd-jwt';
 import { Issuer } from './issuer';
-import { signerCallbackFn } from './test-utils/helpers';
+import { hasherCallbackFn, signerCallbackFn } from './test-utils/helpers';
 import { HasherConfig, SignerConfig, VCClaims } from './types';
-import { hasherCallbackFn, supportedAlgorithm } from './util';
+import { supportedAlgorithm } from './util';
 
 describe('Issuer', () => {
   let issuer: Issuer;
