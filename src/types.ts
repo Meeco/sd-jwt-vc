@@ -1,4 +1,5 @@
-import { JSONWebKeySet, JWK, JWTPayload } from 'jose';
+import { Hasher, JWK, JWTPayload, Signer } from 'sd-jwt';
+import { supportedAlgorithm } from './util';
 
 export const SD_JWT_FORMAT_SEPARATOR = '~';
 
@@ -43,4 +44,18 @@ export interface IssuerMetadata {
   issuer: string;
   jwks?: JSONWebKeySet;
   jwks_uri?: string;
+}
+
+export type HasherConfig = {
+  alg: string;
+  callback: Hasher;
+};
+
+export type SignerConfig = {
+  alg: supportedAlgorithm;
+  callback: Signer;
+};
+
+export interface JSONWebKeySet {
+  keys: JWK[];
 }

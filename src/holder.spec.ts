@@ -1,17 +1,18 @@
-import { KeyLike, generateKeyPair, importJWK } from 'jose';
+import { generateKeyPair, importJWK } from 'jose';
 import { Holder } from './holder';
+import { signerCallbackFn, veriferCallbackFn } from './test-utils/helpers';
+import { SignerConfig } from './types';
 import { supportedAlgorithm } from './util';
 
 describe('Holder', () => {
   let holder: Holder;
-  let privateKey: KeyLike | Uint8Array;
-  let algorithm: supportedAlgorithm;
 
   beforeEach(async () => {
-    algorithm = supportedAlgorithm.ES256;
-    const keyPair = await generateKeyPair(algorithm);
-    privateKey = keyPair.privateKey;
-    holder = new Holder(privateKey, algorithm);
+    const keyPair = await generateKeyPair(supportedAlgorithm.ES256);
+    holder = new Holder({
+      alg: supportedAlgorithm.ES256,
+      callback: signerCallbackFn(keyPair.privateKey),
+    });
   });
 
   it('should get KeyBindingJWT', async () => {
@@ -37,13 +38,19 @@ describe('Holder', () => {
     };
 
     const pk = await importJWK(privateKey);
-    const holder = new Holder(pk, supportedAlgorithm.ES256);
+
+    const signer: SignerConfig = {
+      alg: supportedAlgorithm.ES256,
+      callback: signerCallbackFn(pk),
+    };
+    const holder = new Holder(signer);
     const issuedSDJWT =
       'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
 
     const { vcSDJWTWithkeyBindingJWT, nonce } = await holder.presentVerifiableCredentialSDJWT(
       'https://valid.verifier.url',
       issuedSDJWT,
+      veriferCallbackFn(),
     );
 
     // console.log('vcSDJWTWithkeyBindingJWT: ' + vcSDJWTWithkeyBindingJWT);

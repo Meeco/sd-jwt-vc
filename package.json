@@ -53,10 +53,10 @@
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "jose": "^4.14.6"
   },
   "dependencies": {
-    "jose": "^4.14.6",
     "sd-jwt": "file:../sd-jwt"
   }
 }

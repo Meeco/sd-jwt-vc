@@ -16,25 +16,37 @@ This is a TypeScript class that represents an issuer of Verifiable Credentials (
 
 #### Usage
 
-To use the Issuer class, you need to create an instance of it by passing in a private key, an algorithm, and an optional hasher algorithm. Here's an example:
+To use the Issuer class, you need to create an instance of it by passing in a signer configuration object and a hasher configuration object. Here's an example:
 
 ```typescript
 import { generateKeyPair } from 'jose';
+
 import { DisclosureFrame, SDJWTPayload } from 'sd-jwt';
 import { Issuer } from './issuer';
-import { VCClaims } from './types';
-import { supportedAlgorithm } from './util';
+import { signerCallbackFn } from './test-utils/helpers';
+import { HasherConfig, SignerConfig, VCClaims } from './types';
+import { hasherCallbackFn, supportedAlgorithm } from './util';
 
+const keyPair = await generateKeyPair(supportedAlgorithm.EdDSA);
 
-const keyPair = await generateKeyPair(algorithm);
-const privateKey = keyPair.privateKey;
-const algorithm: supportedAlgorithm = supportedAlgorithm.EdDSA';
-const issuer = new Issuer(privateKey, algorithm, 'sha256');
+let hasher: HasherConfig = {
+  alg: 'sha256',
+  callback: hasherCallbackFn('sha256'),
+};
+let signer: SignerConfig = {
+  alg: supportedAlgorithm.EdDSA,
+  callback: signerCallbackFn(keyPair.privateKey),
+};
+
+let issuer = new Issuer(signer, hasher);
 ```
 
-- privateKey: The private key to use for signing the SD JWTs.
-- algorithm: The algorithm to use for signing the SD JWTs. Must be one of the supported algorithms ('EdDSA', 'ES256', 'ES256K', 'ES384', 'ES512', 'PS256', 'PS384', 'PS512', 'RS256', 'RS384', 'RS512').
-- hasherAlgo: The algorithm to use for hashing the SD JWTs. Must be one of the available algorithms supported by OpenSSL.
+- singner: The signer configuration object. It contains the following properties:
+  - alg: The algorithm to use for signing the SD JWTs. Must be one of the supported algorithms ('EdDSA', 'ES256', 'ES256K', 'ES384', 'ES512', 'PS256', 'PS384', 'PS512', 'RS256', 'RS384', 'RS512').
+  - callback: The callback function that will be used to sign the SD JWTs. It must be a function that takes a string and returns a string.
+- hasher: The hasher configuration object. It contains the following properties:
+  - alg: The algorithm to use for hashing the SD JWTs. Must be one of the available algorithms supported by OpenSSL.
+  - callback: The callback function that will be used to hash the SD JWTs. It must be a function that takes a string and returns a string.
 
 #### createVCSDJWT
 
@@ -81,15 +93,15 @@ This is a TypeScript class that represents a holder of Verifiable Credentials (V
 
 #### Usage
 
-To use the Holder class, you need to create an instance of it by passing in a public key, an algorithm, and an optional hasher algorithm. Here's an example:
+To use the Holder class, you need to create an instance of it by passing in a signer configuration object. Here's an example:
 
 ```typescript
-import { generateKeyPair, importJWK } from 'jose';
+import { importJWK } from 'jose';
 import { Holder } from './holder';
+import { signerCallbackFn, veriferCallbackFn } from './test-utils/helpers';
 import { supportedAlgorithm } from './util';
 
-
-const privateKeyJWK = {
+const privateKey = {
   kty: 'EC',
   x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
   y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
@@ -97,12 +109,17 @@ const privateKeyJWK = {
   d: '9Ie2xvzUdQBGCjT9ktsZYGzwG4hOWea-zvCQSQSWJxk',
 };
 
-const privateKey = await importJWK(privateKeyJWK);
-const algorithm: supportedAlgorithm = supportedAlgorithm.ES256';
-const holder = new Holder(privateKey, supportedAlgorithm.ES256);
+const pk = await importJWK(privateKey);
+let signer: SignerConfig = {
+  alg: supportedAlgorithm.EdDSA,
+  callback: signerCallbackFn(pk),
+};
+const holder = new Holder(signer);
 ```
 
 #### presentVerifiableCredentialSDJWT
+
+Once you have an instance of the Holder class, you can use it to present SD JWTs for VCs. Here's an example:
 
 ```typescript
 const issuedSDJWT =
@@ -111,6 +128,7 @@ const issuedSDJWT =
 const { vcSDJWTWithkeyBindingJWT, nonce } = await holder.presentVerifiableCredentialSDJWT(
   'https://valid.verifier.url',
   issuedSDJWT,
+  veriferCallbackFn(),
 );
 ```
 

@@ -1,45 +1,47 @@
-import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, decodeJwt, importJWK, jwtVerify } from 'jose';
-import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR } from './types';
-import { generateNonce, isValidUrl, supportedAlgorithm } from './util';
+import { KeyBindingVerifier, decodeJWT } from 'sd-jwt';
+import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR, SignerConfig } from './types';
+import { generateNonce, isValidUrl } from './util';
 
 export class Holder {
-  private privateKey: KeyLike | Uint8Array;
-  private algorithm: supportedAlgorithm;
+  private signer: SignerConfig;
   private static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
 
-  constructor(privateKey: KeyLike | Uint8Array, algorithm: supportedAlgorithm) {
-    if (!privateKey) {
-      throw new Error('Holder private key is required');
+  /**
+   * Signer Config with callback function used for signing key binding JWT.
+   * @param signer
+   */
+  constructor(signer: SignerConfig) {
+    if (!signer?.callback || typeof signer?.callback !== 'function') {
+      throw new Error('Signer function is required');
     }
-    if (!algorithm || typeof algorithm !== 'string') {
-      throw new Error(`Issuer algorithm is required and must be one of ${supportedAlgorithm}`);
+    if (!signer?.alg || typeof signer?.alg !== 'string') {
+      throw new Error('algo used for Signer function is required');
     }
 
-    this.algorithm = algorithm;
-    this.privateKey = privateKey;
+    this.signer = signer;
   }
 
   /**
-   * Gets the key binding JWT for the specified verifier.
-   * @param forVerifier The verifier to get the key binding JWT for.
-   * @returns The key binding JWT and nonce.
-   * @throws An error if the key binding JWT could not be created.
+   * Gets a key binding JWT.
+   * @param aud The verifier to present the VC SD-JWT to. e.g. https://example.com/verifier
+   * @param nonce The nonce to use.
+   * @throws An error if the key binding JWT cannot be created.
+   * @returns The key binding JWT.
    */
-  async getKeyBindingJWT(forVerifier: string): Promise<{ keyBindingJWT: JWT; nonce: string }> {
+  async getKeyBindingJWT(aud: string, nonce: string = generateNonce()): Promise<{ keyBindingJWT: JWT; nonce: string }> {
     try {
-      const protectedHeader: JWTHeaderParameters = {
+      const protectedHeader = {
         typ: Holder.SD_KEY_BINDING_JWT_TYP,
-        alg: this.algorithm,
+        alg: this.signer.alg,
       };
 
-      const nonce = generateNonce();
       const presentSDJWTPayload: PresentSDJWTPayload = {
-        aud: forVerifier,
+        aud: aud,
         nonce,
         iat: Date.now(),
       };
 
-      const jwt = await new SignJWT(presentSDJWTPayload).setProtectedHeader(protectedHeader).sign(this.privateKey);
+      const jwt = await this.signer.callback(protectedHeader, presentSDJWTPayload);
       return { keyBindingJWT: jwt, nonce };
     } catch (error: any) {
       throw new Error(`Failed to get Key Binding JWT: ${error.message}`);
@@ -47,17 +49,19 @@ export class Holder {
   }
 
   /**
-   * Presents a VC as an SD-JWT token with a key binding JWT.
-   * @param forVerifier The verifier to present the VC to.
+   * Presents a VC SD-JWT with a key binding JWT.
+   * @param aud The verifier to present the VC SD-JWT to. e.g. https://example.com/verifier
    * @param sdJWT The SD-JWT to present.
-   * @returns The VC as an SD-JWT token with a key binding JWT and nonce.
-   * @throws An error if the forVerifier or sdJWT parameters are invalid, or if the key binding JWT could not be verified.
+   * @param keyBindingJWTVerifier The key binding JWT verifier callback function.
+   * @throws An error if the VC SD-JWT cannot be presented.
+   * @returns The VC SD-JWT with the key binding JWT.
    */
   async presentVerifiableCredentialSDJWT(
-    forVerifier: string,
+    aud: string,
     sdJWT: JWT,
+    keyBindingJWTVerifier: KeyBindingVerifier,
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce: string }> {
-    if (typeof forVerifier !== 'string' || !forVerifier || !isValidUrl(forVerifier)) {
+    if (typeof aud !== 'string' || !aud || !isValidUrl(aud)) {
       throw new Error('Invalid forVerifier parameter');
     }
 
@@ -66,18 +70,18 @@ export class Holder {
     }
 
     const [sdJWTPayload, _] = sdJWT.split(SD_JWT_FORMAT_SEPARATOR);
-    const jwt: JWTPayload = decodeJwt(sdJWTPayload);
-    const { jwk: holderPublicKey } = (jwt as CreateSDJWTPayload).cnf || {};
+    const jwt = decodeJWT(sdJWTPayload);
 
-    if (!holderPublicKey) {
+    const { jwk: holderPublicKeyJWK } = (jwt.payload as CreateSDJWTPayload).cnf || {};
+
+    if (!holderPublicKeyJWK) {
       throw new Error('No holder public key in SD-JWT');
     }
 
-    const holderJWK = await importJWK(holderPublicKey);
-    const { nonce, keyBindingJWT } = await this.getKeyBindingJWT(forVerifier);
+    const { nonce, keyBindingJWT } = await this.getKeyBindingJWT(aud);
 
     try {
-      await jwtVerify(keyBindingJWT, holderJWK);
+      await keyBindingJWTVerifier(keyBindingJWT, holderPublicKeyJWK);
     } catch (e) {
       throw new Error('Failed to verify key binding JWT: SD JWT holder public key does not match private key');
     }

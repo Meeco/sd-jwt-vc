@@ -1,47 +1,39 @@
-import { KeyLike } from 'jose';
-import { DisclosureFrame, Hasher, SDJWTPayload, SaltGenerator, Signer, issueSDJWT } from 'sd-jwt';
-import { JWT, VCClaims } from './types';
-import { defaultHashAlgorithm, hasherCallbackFn, isValidUrl, signerCallbackFn, supportedAlgorithm } from './util';
+import { DisclosureFrame, SDJWTPayload, SaltGenerator, issueSDJWT } from 'sd-jwt';
+import { HasherConfig, JWT, SignerConfig, VCClaims } from './types';
+import { isValidUrl } from './util';
 
 export class Issuer {
-  private hasher: Hasher;
-  private signer: Signer;
-  private algorithm: supportedAlgorithm;
+  private hasher: HasherConfig;
+  private signer: SignerConfig;
   private static SD_JWT_TYP = 'vc+sd-jwt';
 
-  /**
-   * Creates a new instance of the `Issuer` class.
-   * @param privateKey The private key used to sign the payload.
-   * @param algorithm The algorithm used to sign the payload.
-   * @param hasherAlgo The algorithm used to hash the payload before signing.
-   */
-  constructor(
-    privateKey: KeyLike | Uint8Array,
-    algorithm: supportedAlgorithm,
-    hasherAlgo: string = defaultHashAlgorithm,
-  ) {
-    if (!privateKey) {
-      throw new Error('Issuer private key is required');
+  constructor(signer: SignerConfig, hasher: HasherConfig) {
+    if (!signer?.callback || typeof signer?.callback !== 'function') {
+      throw new Error('Signer function is required');
     }
-    if (!algorithm || typeof algorithm !== 'string') {
-      throw new Error(`Issuer algorithm is required and must be one of ${supportedAlgorithm}`);
-    }
-    if (hasherAlgo && typeof hasherAlgo !== 'string') {
-      throw new Error('hasherAlgo must be available algorithms supported by OpenSSL');
+    if (!signer?.alg || typeof signer?.alg !== 'string') {
+      throw new Error('algo used for Signer function is required');
     }
 
-    this.algorithm = algorithm;
-    this.hasher = hasherCallbackFn(hasherAlgo);
-    this.signer = signerCallbackFn(privateKey);
+    if (!hasher?.callback || typeof hasher?.callback !== 'function') {
+      throw new Error('Hasher function is required');
+    }
+    if (!hasher?.alg || typeof hasher?.alg !== 'string') {
+      throw new Error('algo used for Hasher function is required');
+    }
+
+    this.signer = signer;
+    this.hasher = hasher;
   }
 
   /**
-   * Creates a VC as an SD-JWT token.
+   * Creates a VC SD-JWT.
    * @param claims The VC claims.
    * @param sdJWTPayload The SD-JWT payload.
-   * @param sdVCClaimsDisclosureFrame The SD-VC claims.
+   * @param sdVCClaimsDisclosureFrame The SD-VC claims disclosure frame.
    * @param saltGenerator The salt generator.
-   * @returns The VC as an SD-JWT token.
+   * @throws An error if the VC SD-JWT cannot be created.
+   * @returns The VC SD-JWT.
    */
   async createVCSDJWT(
     claims: VCClaims,
@@ -57,15 +49,15 @@ export class Issuer {
       const jwt = await issueSDJWT(
         {
           typ: Issuer.SD_JWT_TYP,
-          alg: this.algorithm,
+          alg: this.signer.alg,
         },
         { ...sdJWTPayload, ...claims },
         sdVCClaimsDisclosureFrame,
         {
-          signer: this.signer,
+          signer: this.signer.callback,
           hash: {
-            alg: defaultHashAlgorithm,
-            callback: this.hasher,
+            alg: this.hasher.alg,
+            callback: this.hasher.callback,
           },
           cnf: sdJWTPayload?.cnf,
           generateSalt: saltGenerator,
