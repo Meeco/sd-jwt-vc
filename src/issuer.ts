@@ -1,4 +1,4 @@
-import { DisclosureFrame, SDJWTPayload, SaltGenerator, issueSDJWT } from 'sd-jwt';
+import { DisclosureFrame, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
 import { HasherConfig, JWT, SignerConfig, VCClaims } from './types.js';
 import { isValidUrl } from './util.js';
 

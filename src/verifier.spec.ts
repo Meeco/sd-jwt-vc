@@ -1,5 +1,5 @@
+import { decodeJWT } from '@meeco/sd-jwt';
 import { JWK, importJWK } from 'jose';
-import { decodeJWT } from 'sd-jwt';
 import { hasherCallbackFn, kbVeriferCallbackFn, verifierCallbackFn } from './test-utils/helpers';
 import { defaultHashAlgorithm } from './util';
 import { Verifier } from './verifier';

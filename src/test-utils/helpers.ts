@@ -1,6 +1,6 @@
+import { Hasher, KeyBindingVerifier, Signer, Verifier, base64encode, decodeJWT } from '@meeco/sd-jwt';
 import { createHash, randomBytes } from 'crypto';
 import { JWK, JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK, jwtVerify } from 'jose';
-import { Hasher, KeyBindingVerifier, Signer, Verifier, base64encode, decodeJWT } from 'sd-jwt';
 import { NonceGenerator } from '../types';
 import { defaultHashAlgorithm, supportedAlgorithm } from '../util';
 

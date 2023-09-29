@@ -2,8 +2,6 @@
   "name": "@meeco/sd-jwt-vc",
   "version": "0.0.1",
   "description": "SD-JWT VC implementation in typescript",
-  "source": "src/index.ts",
-  "private": true,
   "scripts": {
     "build": "tsc",
     "build-all": "npm-run-all clear build:*",
@@ -21,7 +19,7 @@
     "node": ">=18",
     "npm": ">=8.0.0"
   },
-  "repository": "@meeco/sd-jwt-vc",
+  "repository": "https://github.com/Meeco/sd-jwt-vc",
   "keywords": [
     "sd-jwt-vc"
   ],
@@ -66,6 +64,6 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "sd-jwt": "file:../sd-jwt"
+    "@meeco/sd-jwt": "^0.0.1"
   }
 }

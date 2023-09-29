@@ -1,4 +1,4 @@
-import { KeyBindingVerifier, decodeJWT, decodeSDJWT } from 'sd-jwt';
+import { KeyBindingVerifier, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
 import {
   CreateSDJWTPayload,
   UndisclosedList as DisclosedList,
