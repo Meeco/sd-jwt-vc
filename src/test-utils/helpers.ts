@@ -31,7 +31,7 @@ export function kbVeriferCallbackFn(expectedAud: string, expectedNonce: string):
   };
 }
 
-export function veriferCallbackFn(): KeyBindingVerifier {
+export function keyBindingVerifierCallbackFn(): KeyBindingVerifier {
   return async (kbjwt: string, holderJWK: JWK) => {
     const { header } = decodeJWT(kbjwt);
 

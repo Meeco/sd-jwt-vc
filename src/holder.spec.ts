@@ -1,8 +1,8 @@
 import { generateKeyPair, importJWK } from 'jose';
 import { Holder } from './holder';
-import { signerCallbackFn, veriferCallbackFn } from './test-utils/helpers';
+import { keyBindingVerifierCallbackFn, signerCallbackFn } from './test-utils/helpers';
 import { SignerConfig } from './types';
-import { nonceGeneratorCallbackFn, supportedAlgorithm } from './util';
+import { supportedAlgorithm } from './util';
 
 describe('Holder', () => {
   let holder: Holder;
@@ -53,12 +53,17 @@ describe('Holder', () => {
         value: 'test person',
       },
     ];
+
+    const nonceFromVerifier = 'nIdBbNgRqCXBl8YOkfVdg==';
+
     const { vcSDJWTWithkeyBindingJWT, nonce } = await holder.presentVerifiableCredentialSDJWT(
-      'https://valid.verifier.url',
       issuedSDJWT,
-      veriferCallbackFn(),
-      nonceGeneratorCallbackFn(),
       disclosedList,
+      {
+        nonce: nonceFromVerifier,
+        audience: 'https://valid.verifier.url',
+        keyBindingVerifierCallbackFn: keyBindingVerifierCallbackFn(),
+      },
     );
 
     console.log('vcSDJWTWithkeyBindingJWT: ' + vcSDJWTWithkeyBindingJWT);
