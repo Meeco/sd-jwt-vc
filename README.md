@@ -21,7 +21,7 @@ To use the Issuer class, you need to create an instance of it by passing in a si
 ```typescript
 import { generateKeyPair } from 'jose';
 
-import { DisclosureFrame, SDJWTPayload } from 'sd-jwt';
+import { DisclosureFrame, SDJWTPayload } from '@meeco/sd-jwt';
 import { Issuer } from './issuer';
 import { signerCallbackFn } from './test-utils/helpers';
 import { HasherConfig, SignerConfig, VCClaims } from './types';
