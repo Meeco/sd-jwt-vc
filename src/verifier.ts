@@ -1,14 +1,14 @@
-import { JWK } from 'jose';
 import {
   Hasher,
+  JWK,
   KeyBindingVerifier,
   SDJWTPayload,
   Verifier as VerifierCallbackFn,
   decodeJWT,
   verifySDJWT,
-} from 'sd-jwt';
-import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types';
-import { isValidUrl } from './util';
+} from '@meeco/sd-jwt';
+import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types.js';
+import { isValidUrl } from './util.js';
 
 export class Verifier {
   /**

@@ -16,7 +16,10 @@ describe('Holder', () => {
   });
 
   it('should get KeyBindingJWT', async () => {
-    const { keyBindingJWT } = await holder.getKeyBindingJWT('https://valid.verifier.url');
+    const { keyBindingJWT } = await holder.getKeyBindingJWT(
+      'https://valid.verifier.url',
+      keyBindingVerifierCallbackFn(),
+    );
 
     expect(keyBindingJWT).toBeDefined();
     expect(typeof keyBindingJWT).toBe('string');

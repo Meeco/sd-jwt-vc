@@ -1,5 +1,5 @@
-import { Hasher, JWK, JWTPayload, Signer } from 'sd-jwt';
-import { supportedAlgorithm } from './util';
+import { Hasher, JWK, JWTPayload, Signer } from '@meeco/sd-jwt';
+import { supportedAlgorithm } from './util.js';
 
 export const SD_JWT_FORMAT_SEPARATOR = '~';
 

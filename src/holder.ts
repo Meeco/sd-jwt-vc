@@ -1,4 +1,4 @@
-import { JWK, KeyBindingVerifier, decodeJWT, decodeSDJWT } from 'sd-jwt';
+import { JWK, KeyBindingVerifier, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
 import {
   CreateSDJWTPayload,
   UndisclosedList as DisclosedList,
@@ -6,8 +6,8 @@ import {
   PresentSDJWTPayload,
   SD_JWT_FORMAT_SEPARATOR,
   SignerConfig,
-} from './types';
-import { isValidUrl } from './util';
+} from './types.js';
+import { isValidUrl } from './util.js';
 
 export class Holder {
   private signer: SignerConfig;
