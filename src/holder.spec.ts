@@ -16,10 +16,8 @@ describe('Holder', () => {
   });
 
   it('should get KeyBindingJWT', async () => {
-    const { keyBindingJWT } = await holder.getKeyBindingJWT(
-      'https://valid.verifier.url',
-      keyBindingVerifierCallbackFn(),
-    );
+    const nonce = 'nIdBbNgRqCXBl8YOkfVdg==';
+    const { keyBindingJWT } = await holder.getKeyBindingJWT('https://valid.verifier.url', nonce);
 
     expect(keyBindingJWT).toBeDefined();
     expect(typeof keyBindingJWT).toBe('string');
