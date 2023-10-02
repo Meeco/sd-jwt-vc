@@ -26,6 +26,14 @@ export class Issuer {
     this.hasher = hasher;
   }
 
+  // write getter for signer and hasher
+  get getSigner() {
+    return this.signer;
+  }
+  get getHasher() {
+    return this.hasher;
+  }
+
   /**
    * Creates a VC SD-JWT.
    * @param claims The VC claims.
@@ -76,21 +84,15 @@ export class Issuer {
    */
   validateSDJWTPayload(sdJWTPayload: SDJWTPayload) {
     if (!sdJWTPayload.iss || !isValidUrl(sdJWTPayload.iss)) {
-      throw new Error('Issuer iss is required and must be a valid URL');
+      throw new Error('Issuer iss (issuer) is required and must be a valid URL');
     }
     if (!sdJWTPayload.iat || typeof sdJWTPayload.iat !== 'number') {
-      throw new Error('Payload iat is required and must be a number');
+      throw new Error('Payload iat (Issued at - seconds since Unix epoch) is required and must be a number');
     }
     if (!sdJWTPayload.cnf || typeof sdJWTPayload.cnf !== 'object' || !sdJWTPayload.cnf.jwk) {
       throw new Error('Payload cnf is required and must be a JWK format');
     }
-    if (
-      typeof sdJWTPayload.cnf.jwk !== 'object' ||
-      typeof sdJWTPayload.cnf.jwk.kty !== 'string' ||
-      typeof sdJWTPayload.cnf.jwk.crv !== 'string' ||
-      typeof sdJWTPayload.cnf.jwk.x !== 'string' ||
-      typeof sdJWTPayload.cnf.jwk.y !== 'string'
-    ) {
+    if (typeof sdJWTPayload.cnf.jwk !== 'object' || typeof sdJWTPayload.cnf.jwk.kty !== 'string') {
       throw new Error('Payload cnf.jwk must be valid JWK format');
     }
 
@@ -118,8 +120,8 @@ export class Issuer {
       throw new Error('Payload type is required and must be a string');
     }
     if (
-      claims.credentialStatus &&
-      (typeof claims.credentialStatus !== 'object' || !claims.status?.idx || !isValidUrl(claims.status?.uri))
+      claims.status &&
+      (typeof claims.status !== 'object' || !claims.status?.idx || !isValidUrl(claims.status?.uri))
     ) {
       throw new Error('Payload status must be an object with idx and uri properties');
     }
