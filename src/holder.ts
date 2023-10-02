@@ -11,7 +11,7 @@ import { isValidUrl } from './util.js';
 
 export class Holder {
   private signer: SignerConfig;
-  private static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
+  public static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
 
   /**
    * Signer Config with callback function used for signing key binding JWT.
@@ -26,6 +26,10 @@ export class Holder {
     }
 
     this.signer = signer;
+  }
+
+  get getSigner() {
+    return this.signer;
   }
 
   /**
