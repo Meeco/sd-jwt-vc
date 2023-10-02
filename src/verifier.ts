@@ -40,13 +40,13 @@ export class Verifier {
   }
 
   /**
-   * Fetches the issuer public key from the issuer.
+   * Get the issuer public key from the issuer.
    * @param sdJwtVC The SD-JWT to verify.
-   * @param issuerPath The issuer path to use.
+   * @param issuerPath The issuer path postfix to .well-known/{issuerPath}, to get the issuer public key. e.g. 'jwt-issuer/user/1234'
    * @throws An error if the issuer public key cannot be fetched.
    * @returns The issuer public key.
    */
-  public async fetchIssuerPublicKeyFromIss(sdJwtVC: JWT, issuerPath: string): Promise<JWK> {
+  public async getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPath: string): Promise<JWK> {
     const s = sdJwtVC.split(SD_JWT_FORMAT_SEPARATOR);
     const jwt = decodeJWT(s.shift() || '');
 
