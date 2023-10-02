@@ -1,6 +1,6 @@
 import { KeyBindingVerifier, Signer, decodeJWT } from '@meeco/sd-jwt';
 import { JWK, JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK, jwtVerify } from 'jose';
-import { Holder, SignerConfig, supportedAlgorithm } from 'src';
+import { Holder, SignerConfig, supportedAlgorithm } from '../dev/src';
 
 const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
   return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {

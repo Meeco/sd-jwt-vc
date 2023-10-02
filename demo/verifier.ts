@@ -1,7 +1,7 @@
 import { Hasher, KeyBindingVerifier, base64encode, decodeJWT } from '@meeco/sd-jwt';
 import { createHash } from 'crypto';
 import { JWK, KeyLike, importJWK, jwtVerify } from 'jose';
-import { Verifier, defaultHashAlgorithm, supportedAlgorithm } from 'src';
+import { Verifier, defaultHashAlgorithm, supportedAlgorithm } from '../dev/src';
 
 function verifierCallbackFn(publicKey: Uint8Array | KeyLike) {
   return async (jwt: string): Promise<boolean> => {
@@ -62,3 +62,5 @@ async function main() {
   );
   console.log(result);
 }
+
+main();

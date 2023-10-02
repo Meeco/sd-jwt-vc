@@ -1,7 +1,7 @@
 import { DisclosureFrame, Hasher, SDJWTPayload, Signer, base64encode } from '@meeco/sd-jwt';
 import { createHash } from 'crypto';
 import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, exportJWK, generateKeyPair } from 'jose';
-import { HasherConfig, Issuer, SignerConfig, VCClaims, defaultHashAlgorithm, supportedAlgorithm } from 'src';
+import { HasherConfig, Issuer, SignerConfig, VCClaims, defaultHashAlgorithm, supportedAlgorithm } from '../dev/src';
 
 const hasherCallbackFn = function (alg: string = defaultHashAlgorithm): Hasher {
   return (data: string): string => {
