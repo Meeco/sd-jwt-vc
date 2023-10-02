@@ -1,6 +1,6 @@
 # SD-JWT-VC
 
-This is an implementation of [SD-JWT VC (I-D version latest)](https://drafts.oauth.net/oauth-sd-jwt-vc/draft-ietf-oauth-sd-jwt-vc.html) in typescript.
+This is an implementation of [SD-JWT VC (I-D version latest)](https://drafts.oauth.net/oauth-sd-jwt-vc/draft-ietf-oauth-sd-jwt-vc.html) in typescript. It uses the [SD-JWT](https://github.com/Meeco/sd-jwt) library to create the SD JWTs.
 
 ## Installation
 
@@ -12,33 +12,50 @@ npm install sd-jwt-vc
 
 ### Issuer
 
-This is a TypeScript class that represents an issuer of Verifiable Credentials (VCs) that can create Signed and Disclosed JWTs (SD JWTs) for VCs. It uses the sd-jwt library to create the SD JWTs.
+This is a TypeScript class that represents an issuer of Verifiable Credentials (VCs) that can create Signed and Disclosed JWTs (SD JWTs) for VCs.
 
 #### Usage
 
-To use the Issuer class, you need to create an instance of it by passing in a signer configuration object and a hasher configuration object. Here's an example:
+To use the Issuer class, you need to create an instance of it by passing in a signer configuration object and a hasher configuration object.
+signer configuration callback function will be used to sign the SD JWTs and hasher configuration callback function will be used to hash the disclosued claims in the SD JWTs.
+
+Here's an example:
 
 ```typescript
-import { generateKeyPair } from 'jose';
+import { DisclosureFrame, Hasher, SDJWTPayload, Signer, base64encode } from '@meeco/sd-jwt';
+import { createHash } from 'crypto';
+import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, exportJWK, generateKeyPair } from 'jose';
+import { HasherConfig, Issuer, SignerConfig, VCClaims, defaultHashAlgorithm, supportedAlgorithm } from '../src/index';
 
-import { DisclosureFrame, SDJWTPayload } from '@meeco/sd-jwt';
-import { Issuer } from './issuer';
-import { signerCallbackFn } from './test-utils/helpers';
-import { HasherConfig, SignerConfig, VCClaims } from './types';
-import { hasherCallbackFn, supportedAlgorithm } from './util';
-
-const keyPair = await generateKeyPair(supportedAlgorithm.EdDSA);
-
-let hasher: HasherConfig = {
-  alg: 'sha256',
-  callback: hasherCallbackFn('sha256'),
-};
-let signer: SignerConfig = {
-  alg: supportedAlgorithm.EdDSA,
-  callback: signerCallbackFn(keyPair.privateKey),
+const hasherCallbackFn = function (alg: string = defaultHashAlgorithm): Hasher {
+  return (data: string): string => {
+    const digest = createHash(alg).update(data).digest();
+    return base64encode(digest);
+  };
 };
 
-let issuer = new Issuer(signer, hasher);
+const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
+  return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
+    return new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey);
+  };
+};
+
+async function main() {
+  const keyPair = await generateKeyPair(supportedAlgorithm.EdDSA);
+
+  const hasher: HasherConfig = {
+    alg: 'sha256',
+    callback: hasherCallbackFn('sha256'),
+  };
+  const signer: SignerConfig = {
+    alg: supportedAlgorithm.EdDSA,
+    callback: signerCallbackFn(keyPair.privateKey),
+  };
+
+  const issuer = new Issuer(signer, hasher);
+}
+
+main();
 ```
 
 - singner: The signer configuration object. It contains the following properties:
@@ -53,36 +70,39 @@ let issuer = new Issuer(signer, hasher);
 Once you have an instance of the Issuer class, you can use it to create SD JWTs for VCs. Here's an example:
 
 ```typescript
-const holderPublicKey = {
-  kty: 'EC',
-  x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
-  y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
-  crv: 'P-256',
-};
+async function main() {
+ ...
+ ...
 
-const payload: SDJWTPayload = {
-  iat: Date.now(),
-  cnf: {
-    jwk: holderPublicKey,
-  },
-  iss: 'https://valid.issuer.url',
-};
+  const holderPublicKey = await exportJWK(keyPair.publicKey);
 
-const vcClaims: VCClaims = {
-  type: 'VerifiableCredential',
-  status: {
-    idx: 'statusIndex',
-    uri: 'https://valid.status.url',
-  },
-  person: {
-    name: 'test person',
-    age: 25,
-  },
-};
+  const payload: SDJWTPayload = {
+    iat: Date.now(),
+    cnf: {
+      jwk: holderPublicKey,
+    },
+    iss: 'https://valid.issuer.url',
+  };
 
-const sdVCClaimsDisclosureFrame: DisclosureFrame = { person: { _sd: ['name', 'age'] } };
+  const vcClaims: VCClaims = {
+    type: 'VerifiableCredential',
+    status: {
+      idx: 'statusIndex',
+      uri: 'https://valid.status.url',
+    },
+    person: {
+      name: 'test person',
+      age: 25,
+    },
+  };
 
-const jwt = await issuer.createVCSDJWT(vcClaims, payload, sdVCClaimsDisclosureFrame);
+  const sdVCClaimsDisclosureFrame: DisclosureFrame = { person: { _sd: ['name', 'age'] } };
+
+  const result = await issuer.createVCSDJWT(vcClaims, payload, sdVCClaimsDisclosureFrame);
+  console.log(result);
+}
+
+main();
 ```
 
 This will create an SD JWT for the given VC claims and SD JWT payload for given [disclosure frame](https://github.com/Meeco/sd-jwt#packsdjwt-examples).
@@ -93,28 +113,44 @@ This is a TypeScript class that represents a holder of Verifiable Credentials (V
 
 #### Usage
 
-To use the Holder class, you need to create an instance of it by passing in a signer configuration object. Here's an example:
+To use the Holder class, you need to create an instance of it by passing in a Holder Signer configuration object. Here's an example:
 
 ```typescript
-import { importJWK } from 'jose';
-import { Holder } from './holder';
-import { signerCallbackFn, veriferCallbackFn } from './test-utils/helpers';
-import { supportedAlgorithm } from './util';
+import { KeyBindingVerifier, Signer, decodeJWT } from '@meeco/sd-jwt';
+import { JWK, JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK, jwtVerify } from 'jose';
+import { Holder, SignerConfig, supportedAlgorithm } from 'src';
 
-const privateKey = {
-  kty: 'EC',
-  x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
-  y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
-  crv: 'P-256',
-  d: '9Ie2xvzUdQBGCjT9ktsZYGzwG4hOWea-zvCQSQSWJxk',
+const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
+  return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
+    return new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey);
+  };
 };
 
-const pk = await importJWK(privateKey);
-let signer: SignerConfig = {
-  alg: supportedAlgorithm.EdDSA,
-  callback: signerCallbackFn(pk),
-};
-const holder = new Holder(signer);
+async function main() {
+  const _publicJwk = {
+    kty: 'EC',
+    x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
+    y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
+    crv: 'P-256',
+  };
+  const privateKey = {
+    kty: 'EC',
+    x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
+    y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
+    crv: 'P-256',
+    d: '9Ie2xvzUdQBGCjT9ktsZYGzwG4hOWea-zvCQSQSWJxk',
+  };
+
+  const pk = await importJWK(privateKey);
+
+  const signer: SignerConfig = {
+    alg: supportedAlgorithm.ES256,
+    callback: signerCallbackFn(pk),
+  };
+  const holder = new Holder(signer);
+}
+
+main();
 ```
 
 #### presentVerifiableCredentialSDJWT
@@ -122,14 +158,130 @@ const holder = new Holder(signer);
 Once you have an instance of the Holder class, you can use it to present SD JWTs for VCs. Here's an example:
 
 ```typescript
-const issuedSDJWT =
-  'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
 
-const { vcSDJWTWithkeyBindingJWT, nonce } = await holder.presentVerifiableCredentialSDJWT(
-  'https://valid.verifier.url',
-  issuedSDJWT,
-  veriferCallbackFn(),
-);
+const keyBindingVerifierCallbackFn = function (): KeyBindingVerifier {
+  return async (kbjwt: string, holderJWK: JWK) => {
+    const { header } = decodeJWT(kbjwt);
+
+    if (!Object.values(supportedAlgorithm).includes(header.alg as supportedAlgorithm)) {
+      throw new Error('unsupported algorithm');
+    }
+
+    const holderKey = await importJWK(holderJWK, header.alg);
+    const verifiedKbJWT = await jwtVerify(kbjwt, holderKey);
+    return !!verifiedKbJWT;
+  };
+};
+
+async function main() {
+ ...
+ ...
+
+  const issuedSDJWT =
+    'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
+
+  const disclosedList = [
+    {
+      key: 'name',
+      value: 'test person',
+    },
+  ];
+
+  const nonceFromVerifier = 'nIdBbNgRqCXBl8YOkfVdg==';
+
+  const { vcSDJWTWithkeyBindingJWT } = await holder.presentVerifiableCredentialSDJWT(issuedSDJWT, disclosedList, {
+    nonce: nonceFromVerifier,
+    audience: 'https://valid.verifier.url',
+    keyBindingVerifyCallbackFn: keyBindingVerifierCallbackFn(),
+  });
+
+  console.log(vcSDJWTWithkeyBindingJWT);
+}
+
+main();
 ```
 
 This will create an SD JWT VC with Key Binding JWT. The holder can then send this JWT to the verifier.
+
+### Verifier
+
+This is a TypeScript class that represents a verifier of Verifiable Credentials (VCs) that can verify Signed and Disclosed SD JWT VC's with Key Binding to Holder.
+
+#### Usage
+
+To use the Verifier class, you need to create an instance of it and call the verifyVerifiableCredentialSDJWT method on it.
+verifyVerifiableCredentialSDJWT method takes the following parameters:
+
+- vcSDJWTWithkeyBindingJWT: The SD JWT VC with Key Binding JWT that was sent by the holder.
+- verifierCallbackFn: The callback function that will be used to verify the SD JWT VC with Key Binding JWT. It must be a function that takes a string and returns a boolean.
+- hasherCallbackFn: The callback function that will be used to hash the disclosued claims in the SD JWTs. It must be a function that takes a string and returns a string.
+- kbVeriferCallbackFn: The callback function that will be used to verify the key binding in the SD JWT VC with Key Binding JWT. It must be a function that takes a string and returns a boolean.
+
+Here's an example:
+
+```typescript
+import { Hasher, KeyBindingVerifier, base64encode, decodeJWT } from '@meeco/sd-jwt';
+import { createHash } from 'crypto';
+import { JWK, KeyLike, importJWK, jwtVerify } from 'jose';
+import { Verifier, defaultHashAlgorithm, supportedAlgorithm } from 'src';
+
+function verifierCallbackFn(publicKey: Uint8Array | KeyLike) {
+  return async (jwt: string): Promise<boolean> => {
+    const verifiedKbJWT = await jwtVerify(jwt, publicKey);
+    return !!verifiedKbJWT;
+  };
+}
+
+function hasherCallbackFn(alg: string = defaultHashAlgorithm): Hasher {
+  return (data: string): string => {
+    const digest = createHash(alg).update(data).digest();
+    return base64encode(digest);
+  };
+}
+
+function kbVeriferCallbackFn(expectedAud: string, expectedNonce: string): KeyBindingVerifier {
+  return async (kbjwt: string, holderJWK: JWK) => {
+    const { header, payload } = decodeJWT(kbjwt);
+
+    if (expectedAud || expectedNonce) {
+      if (payload.aud !== expectedAud) {
+        throw new Error('aud mismatch');
+      }
+      if (payload.nonce !== expectedNonce) {
+        throw new Error('nonce mismatch');
+      }
+    }
+
+    if (!Object.values(supportedAlgorithm).includes(header.alg as supportedAlgorithm)) {
+      throw new Error('unsupported algorithm');
+    }
+
+    const holderKey = await importJWK(holderJWK, header.alg);
+    const verifiedKbJWT = await jwtVerify(kbjwt, holderKey);
+    return !!verifiedKbJWT;
+  };
+}
+
+async function main() {
+  const verifier = new Verifier();
+  const { vcSDJWTWithkeyBindingJWT, nonce } = {
+    vcSDJWTWithkeyBindingJWT:
+      'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL3ZhbGlkLnZlcmlmaWVyLnVybCIsIm5vbmNlIjoibklkQmJOZWdScUNYQmw4WU9rZlZkZz09IiwiaWF0IjoxNjk1NzgzOTgzMDQxfQ.YwgHkYEpCFRHny5L4KdnU_qARVHL2jAScodRqfF5UP50nbryqIl4i1OuaxuQKala_uYNT-e0D4xzghoxWE56SQ',
+    nonce: 'nIdBbNegRqCXBl8YOkfVdg==',
+  };
+
+  const issuerPubKey = await importJWK({
+    crv: 'Ed25519',
+    x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
+    kty: 'OKP',
+  });
+
+  const result = await verifier.verifyVerifiableCredentialSDJWT(
+    vcSDJWTWithkeyBindingJWT,
+    verifierCallbackFn(issuerPubKey),
+    hasherCallbackFn(defaultHashAlgorithm),
+    kbVeriferCallbackFn('https://valid.verifier.url', nonce),
+  );
+  console.log(result);
+}
+```

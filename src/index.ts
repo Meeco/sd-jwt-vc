@@ -1,3 +1,5 @@
 export * from './holder.js';
 export * from './issuer.js';
 export * from './types.js';
+export * from './util.js';
+export * from './verifier.js';

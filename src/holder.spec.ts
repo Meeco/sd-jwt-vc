@@ -82,7 +82,7 @@ describe('Holder', () => {
     const { vcSDJWTWithkeyBindingJWT } = await holder.presentVerifiableCredentialSDJWT(issuedSDJWT, disclosedList, {
       nonce: nonceFromVerifier,
       audience: 'https://valid.verifier.url',
-      keyBindingVerifierCallbackFn: keyBindingVerifierCallbackFn(),
+      keyBindingVerifyCallbackFn: keyBindingVerifierCallbackFn(),
     });
 
     const { disclosures, keyBindingJWT } = decodeSDJWT(vcSDJWTWithkeyBindingJWT);
