@@ -1,3 +1,4 @@
+import { decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
 import { generateKeyPair, importJWK } from 'jose';
 import { Holder } from './holder';
 import { keyBindingVerifierCallbackFn, signerCallbackFn } from './test-utils/helpers';
@@ -12,6 +13,27 @@ describe('Holder', () => {
     holder = new Holder({
       alg: supportedAlgorithm.ES256,
       callback: signerCallbackFn(keyPair.privateKey),
+    });
+  });
+
+  describe('constructor', () => {
+    it('should throw an error if signer callback is not provided', () => {
+      expect(() => new Holder({ alg: supportedAlgorithm.ES256, callback: undefined })).toThrowError(
+        'Signer function is required',
+      );
+    });
+
+    it('should throw an error if signer alg is not provided', () => {
+      expect(() => new Holder({ alg: undefined, callback: () => Promise.resolve('') })).toThrowError(
+        'algo used for Signer function is required',
+      );
+    });
+
+    it('should create an instance of Holder if all required parameters are provided', () => {
+      const signer = { callback: () => Promise.resolve(''), alg: supportedAlgorithm.ES256 };
+      const holder = new Holder(signer);
+      expect(holder).toBeInstanceOf(Holder);
+      expect(holder.getSigner).toEqual(signer);
     });
   });
 
@@ -57,18 +79,28 @@ describe('Holder', () => {
 
     const nonceFromVerifier = 'nIdBbNgRqCXBl8YOkfVdg==';
 
-    const { vcSDJWTWithkeyBindingJWT, nonce } = await holder.presentVerifiableCredentialSDJWT(
-      issuedSDJWT,
-      disclosedList,
-      {
-        nonce: nonceFromVerifier,
-        audience: 'https://valid.verifier.url',
-        keyBindingVerifierCallbackFn: keyBindingVerifierCallbackFn(),
-      },
-    );
+    const { vcSDJWTWithkeyBindingJWT } = await holder.presentVCSDJWT(issuedSDJWT, disclosedList, {
+      nonce: nonceFromVerifier,
+      audience: 'https://valid.verifier.url',
+      keyBindingVerifyCallbackFn: keyBindingVerifierCallbackFn(),
+    });
 
-    console.log('vcSDJWTWithkeyBindingJWT: ' + vcSDJWTWithkeyBindingJWT);
-    console.log('nonce: ' + nonce);
+    const { disclosures, keyBindingJWT } = decodeSDJWT(vcSDJWTWithkeyBindingJWT);
+
+    expect(disclosures[0].key).toEqual(disclosedList[0].key);
+    expect(disclosures[0].value).toEqual(disclosedList[0].value);
+    expect(keyBindingJWT).toBeDefined();
+    expect(typeof keyBindingJWT).toBe('string');
+
+    // decode keyBindingJWT with decodeJWT
+    const { header, payload, signature } = decodeJWT(keyBindingJWT);
+    expect(header.alg).toEqual(supportedAlgorithm.ES256);
+    expect(header.typ).toEqual(Holder.SD_KEY_BINDING_JWT_TYP);
+
+    expect(payload.aud).toEqual('https://valid.verifier.url');
+    expect(payload.nonce).toEqual(nonceFromVerifier);
+
+    expect(signature).toBeDefined();
   });
 
   describe('revealDisclosures', () => {

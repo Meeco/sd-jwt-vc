@@ -11,7 +11,7 @@ import { isValidUrl } from './util.js';
 
 export class Holder {
   private signer: SignerConfig;
-  private static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
+  public static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
 
   /**
    * Signer Config with callback function used for signing key binding JWT.
@@ -26,6 +26,10 @@ export class Holder {
     }
 
     this.signer = signer;
+  }
+
+  get getSigner() {
+    return this.signer;
   }
 
   /**
@@ -66,10 +70,10 @@ export class Holder {
    * @throws An error if the VC SD-JWT cannot be presented.
    * @returns The VC SD-JWT with the key binding JWT.
    */
-  async presentVerifiableCredentialSDJWT(
+  async presentVCSDJWT(
     sdJWT: JWT,
     disclosedList: DisclosedList[],
-    options?: { nonce?: string; audience?: string; keyBindingVerifierCallbackFn?: KeyBindingVerifier },
+    options?: { nonce?: string; audience?: string; keyBindingVerifyCallbackFn?: KeyBindingVerifier },
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce?: string }> {
     if (options.audience && (typeof options.audience !== 'string' || !isValidUrl(options.audience))) {
       throw new Error('Invalid audience parameter');
@@ -90,8 +94,8 @@ export class Holder {
 
     const { keyBindingJWT } = await this.getKeyBindingJWT(options.audience, options.nonce);
 
-    if (options.keyBindingVerifierCallbackFn && typeof options.keyBindingVerifierCallbackFn === 'function') {
-      await this.verifyKeyBinding(options.keyBindingVerifierCallbackFn, keyBindingJWT, holderPublicKeyJWK);
+    if (options.keyBindingVerifyCallbackFn && typeof options.keyBindingVerifyCallbackFn === 'function') {
+      await this.verifyKeyBinding(options.keyBindingVerifyCallbackFn, keyBindingJWT, holderPublicKeyJWK);
     }
 
     let vcSDJWTWithkeyBindingJWT = `${sdJWT}${keyBindingJWT}`;

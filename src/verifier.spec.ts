@@ -15,16 +15,29 @@ describe('Verifier', () => {
     jest.resetAllMocks();
   });
 
-  describe('verifyVerifiableCredentialSDJWT', () => {
+  describe('verifyVCDJWT', () => {
     it('should verify VerifiableCredential SD JWT With KeyBindingJWT', async () => {
+      const claims = {
+        iat: 1695682408857,
+        cnf: {
+          jwk: {
+            kty: 'EC',
+            x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
+            y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
+            crv: 'P-256',
+          },
+        },
+        iss: 'https://valid.issuer.url',
+        type: 'VerifiableCredential',
+        status: { idx: 'statusIndex', uri: 'https://valid.status.url' },
+        person: { name: 'test person', age: 25 },
+      };
+
       const { vcSDJWTWithkeyBindingJWT, nonce } = {
         vcSDJWTWithkeyBindingJWT:
           'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL3ZhbGlkLnZlcmlmaWVyLnVybCIsIm5vbmNlIjoibklkQmJOZWdScUNYQmw4WU9rZlZkZz09IiwiaWF0IjoxNjk1NzgzOTgzMDQxfQ.YwgHkYEpCFRHny5L4KdnU_qARVHL2jAScodRqfF5UP50nbryqIl4i1OuaxuQKala_uYNT-e0D4xzghoxWE56SQ',
         nonce: 'nIdBbNegRqCXBl8YOkfVdg==',
       };
-
-      console.log('vcSDJWTWithkeyBindingJWT: ' + vcSDJWTWithkeyBindingJWT);
-      console.log('nonce: ' + nonce);
 
       const issuerPubKey = await importJWK({
         crv: 'Ed25519',
@@ -32,22 +45,23 @@ describe('Verifier', () => {
         kty: 'OKP',
       });
 
-      const result = await verifier.verifyVerifiableCredentialSDJWT(
+      const result = await verifier.verifyVCSDJWT(
         vcSDJWTWithkeyBindingJWT,
         verifierCallbackFn(issuerPubKey),
         hasherCallbackFn(defaultHashAlgorithm),
         kbVeriferCallbackFn('https://valid.verifier.url', nonce),
       );
       console.log(result);
+      expect(result).toEqual(claims);
     });
   });
 
-  describe('fetchIssuerPublicKeyFromIss', () => {
+  describe('getIssuerPublicKeyFromIss', () => {
     const sdJwtVC =
       'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA';
     const issuerPath = 'jwt-issuer/user/1234';
 
-    it('should fetch issuer public key JWK from jwks_uri', async () => {
+    it('should get issuer public key JWK from jwks_uri', async () => {
       const jwt = decodeJWT(sdJwtVC);
       const wellKnownPath = `.well-known/${issuerPath}`;
       const url = new URL(jwt.payload.iss);
@@ -89,7 +103,7 @@ describe('Verifier', () => {
         }
       });
 
-      const result = await verifier.fetchIssuerPublicKeyFromIss(sdJwtVC, issuerPath);
+      const result = await verifier.getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath);
 
       expect(fetch).toHaveBeenCalledTimes(2);
       expect(fetch).toHaveBeenNthCalledWith(1, issuerUrl);
@@ -97,7 +111,7 @@ describe('Verifier', () => {
       expect(result).toEqual(expectedJWK);
     });
 
-    it('should fetch issuer public key JWK from jwks', async () => {
+    it('should get issuer public key JWK from jwks', async () => {
       const jwt = decodeJWT(sdJwtVC);
       const wellKnownPath = `.well-known/${issuerPath}`;
       const url = new URL(jwt.payload.iss);
@@ -134,7 +148,7 @@ describe('Verifier', () => {
         }
       });
 
-      const result = await verifier.fetchIssuerPublicKeyFromIss(sdJwtVC, issuerPath);
+      const result = await verifier.getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath);
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(issuerUrl);
@@ -152,7 +166,7 @@ describe('Verifier', () => {
         json: () => Promise.resolve(null),
       });
 
-      await expect(verifier.fetchIssuerPublicKeyFromIss(sdJwtVC, issuerPath)).rejects.toThrow(
+      await expect(verifier.getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
         'Issuer response not found',
       );
       expect(fetch).toHaveBeenCalledTimes(1);
@@ -173,7 +187,7 @@ describe('Verifier', () => {
         json: () => Promise.resolve(responseJson),
       });
 
-      await expect(verifier.fetchIssuerPublicKeyFromIss(sdJwtVC, issuerPath)).rejects.toThrow(
+      await expect(verifier.getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
         'Issuer response does not contain the correct issuer',
       );
       expect(fetch).toHaveBeenCalledTimes(1);
@@ -197,7 +211,7 @@ describe('Verifier', () => {
         json: () => Promise.resolve(responseJson),
       });
 
-      await expect(verifier.fetchIssuerPublicKeyFromIss(sdJwtVC, issuerPath)).rejects.toThrow(
+      await expect(verifier.getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
         'Issuer public key JWK not found',
       );
       expect(fetch).toHaveBeenCalledTimes(1);
@@ -218,7 +232,7 @@ describe('Verifier', () => {
         json: () => Promise.resolve(responseJson),
       });
 
-      await expect(verifier.fetchIssuerPublicKeyFromIss(sdJwtVC, issuerPath)).rejects.toThrow(
+      await expect(verifier.getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
         'Issuer response does not contain jwks or jwks_uri',
       );
       expect(fetch).toHaveBeenCalledTimes(1);
@@ -241,7 +255,7 @@ describe('Verifier', () => {
         json: () => Promise.resolve(jwksResponseJson),
       });
 
-      await expect(verifier.fetchIssuerPublicKeyFromIss(sdJwtVC, issuerPath)).rejects.toThrow(
+      await expect(verifier.getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
         'Issuer response does not contain the correct issuer',
       );
       expect(fetch).toHaveBeenCalledTimes(1);
