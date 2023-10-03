@@ -1,12 +1,5 @@
-import { JWK, KeyBindingVerifier, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
-import {
-  CreateSDJWTPayload,
-  DisclosedList,
-  JWT,
-  PresentSDJWTPayload,
-  SD_JWT_FORMAT_SEPARATOR,
-  SignerConfig,
-} from './types.js';
+import { Disclosure, JWK, KeyBindingVerifier, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
+import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR, SignerConfig } from './types.js';
 import { isValidUrl } from './util.js';
 
 export class Holder {
@@ -72,7 +65,7 @@ export class Holder {
    */
   async presentVCSDJWT(
     sdJWT: JWT,
-    disclosedList: DisclosedList[],
+    disclosedList: Disclosure[],
     options?: { nonce?: string; audience?: string; keyBindingVerifyCallbackFn?: KeyBindingVerifier },
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce?: string }> {
     if (options.audience && (typeof options.audience !== 'string' || !isValidUrl(options.audience))) {
@@ -112,7 +105,7 @@ export class Holder {
    * @throws An error if the disclosed claims cannot be revealed.
    * @returns The VC SD-JWT with the disclosed claims.
    */
-  revealDisclosures(sdJWT: JWT, disclosedList: DisclosedList[]): JWT {
+  revealDisclosures(sdJWT: JWT, disclosedList: Disclosure[]): JWT {
     if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
       throw new Error('No disclosures in SD-JWT');
     }
@@ -130,12 +123,7 @@ export class Holder {
     }
 
     const revealedDisclosures = disclosures.filter((disclosure) => {
-      return disclosedList.some((disclosed) => {
-        return (
-          (disclosed.key && disclosure.key === disclosed.key && disclosure.value === disclosed.value) ||
-          (!disclosed.key && disclosed.value && disclosure.value === disclosed.value)
-        );
-      });
+      return disclosedList.some((disclosed) => disclosed.disclosure === disclosure.disclosure);
     });
 
     const revealedDisclosuresEncoded = revealedDisclosures

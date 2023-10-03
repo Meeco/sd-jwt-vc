@@ -61,5 +61,3 @@ export interface JSONWebKeySet {
 }
 
 export type NonceGenerator = (length?: number) => string;
-
-export type DisclosedList = { key?: string; value: string };

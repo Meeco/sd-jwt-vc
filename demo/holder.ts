@@ -50,6 +50,7 @@ async function main() {
 
   const disclosedList = [
     {
+      disclosure: 'WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0',
       key: 'name',
       value: 'test person',
     },
