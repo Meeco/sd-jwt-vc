@@ -153,7 +153,7 @@ async function main() {
 main();
 ```
 
-#### presentVerifiableCredentialSDJWT
+#### presentVCSDJWT
 
 Once you have an instance of the Holder class, you can use it to present SD JWTs for VCs. Here's an example:
 
@@ -189,7 +189,7 @@ async function main() {
 
   const nonceFromVerifier = 'nIdBbNgRqCXBl8YOkfVdg==';
 
-  const { vcSDJWTWithkeyBindingJWT } = await holder.presentVerifiableCredentialSDJWT(issuedSDJWT, disclosedList, {
+  const { vcSDJWTWithkeyBindingJWT } = await holder.presentVCSDJWT(issuedSDJWT, disclosedList, {
     nonce: nonceFromVerifier,
     audience: 'https://valid.verifier.url',
     keyBindingVerifyCallbackFn: keyBindingVerifierCallbackFn(),
@@ -209,8 +209,8 @@ This is a TypeScript class that represents a verifier of Verifiable Credentials 
 
 #### Usage
 
-To use the Verifier class, you need to create an instance of it and call the verifyVerifiableCredentialSDJWT method on it.
-verifyVerifiableCredentialSDJWT method takes the following parameters:
+To use the Verifier class, you need to create an instance of it and call the verifyVCSDJWT method on it.
+verifyVCSDJWT method takes the following parameters:
 
 - vcSDJWTWithkeyBindingJWT: The SD JWT VC with Key Binding JWT that was sent by the holder.
 - verifierCallbackFn: The callback function that will be used to verify the SD JWT VC with Key Binding JWT. It must be a function that takes a string and returns a boolean.
@@ -276,7 +276,7 @@ async function main() {
     kty: 'OKP',
   });
 
-  const result = await verifier.verifyVerifiableCredentialSDJWT(
+  const result = await verifier.verifyVCSDJWT(
     vcSDJWTWithkeyBindingJWT,
     verifierCallbackFn(issuerPubKey),
     hasherCallbackFn(defaultHashAlgorithm),

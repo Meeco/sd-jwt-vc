@@ -20,7 +20,7 @@ export class Verifier {
    * @throws An error if the SD-JWT cannot be verified.
    * @returns The decoded SD-JWT payload.
    */
-  async verifyVerifiableCredentialSDJWT(
+  async verifyVCSDJWT(
     sdJWT: JWT,
     verifierCallbackFn: VerifierCallbackFn,
     hasherCallbackFn: Hasher,

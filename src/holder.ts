@@ -70,7 +70,7 @@ export class Holder {
    * @throws An error if the VC SD-JWT cannot be presented.
    * @returns The VC SD-JWT with the key binding JWT.
    */
-  async presentVerifiableCredentialSDJWT(
+  async presentVCSDJWT(
     sdJWT: JWT,
     disclosedList: DisclosedList[],
     options?: { nonce?: string; audience?: string; keyBindingVerifyCallbackFn?: KeyBindingVerifier },

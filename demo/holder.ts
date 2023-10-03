@@ -57,7 +57,7 @@ async function main() {
 
   const nonceFromVerifier = 'nIdBbNgRqCXBl8YOkfVdg==';
 
-  const { vcSDJWTWithkeyBindingJWT } = await holder.presentVerifiableCredentialSDJWT(issuedSDJWT, disclosedList, {
+  const { vcSDJWTWithkeyBindingJWT } = await holder.presentVCSDJWT(issuedSDJWT, disclosedList, {
     nonce: nonceFromVerifier,
     audience: 'https://valid.verifier.url',
     keyBindingVerifyCallbackFn: keyBindingVerifierCallbackFn(),

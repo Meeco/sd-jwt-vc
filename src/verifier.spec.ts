@@ -15,7 +15,7 @@ describe('Verifier', () => {
     jest.resetAllMocks();
   });
 
-  describe('verifyVerifiableCredentialSDJWT', () => {
+  describe('verifyVCDJWT', () => {
     it('should verify VerifiableCredential SD JWT With KeyBindingJWT', async () => {
       const claims = {
         iat: 1695682408857,
@@ -45,7 +45,7 @@ describe('Verifier', () => {
         kty: 'OKP',
       });
 
-      const result = await verifier.verifyVerifiableCredentialSDJWT(
+      const result = await verifier.verifyVCSDJWT(
         vcSDJWTWithkeyBindingJWT,
         verifierCallbackFn(issuerPubKey),
         hasherCallbackFn(defaultHashAlgorithm),

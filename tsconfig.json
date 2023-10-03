@@ -15,7 +15,7 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
   },
-    "exclude": [
-      "demo"
-    ]
+  "exclude": [
+    "demo"
+  ]
 }
