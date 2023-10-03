@@ -1,7 +1,7 @@
 import { JWK, KeyBindingVerifier, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
 import {
   CreateSDJWTPayload,
-  UndisclosedList as DisclosedList,
+  DisclosedList,
   JWT,
   PresentSDJWTPayload,
   SD_JWT_FORMAT_SEPARATOR,
@@ -109,7 +109,7 @@ export class Holder {
    * Reveals the disclosed claims in the VC SD-JWT.
    * @param sdJWT The SD-JWT to reveal the claims in.
    * @param disclosedList The list of disclosed claims.
-   * @throws An error if the undisclosed claims cannot be revealed.
+   * @throws An error if the disclosed claims cannot be revealed.
    * @returns The VC SD-JWT with the disclosed claims.
    */
   revealDisclosures(sdJWT: JWT, disclosedList: DisclosedList[]): JWT {
@@ -130,10 +130,10 @@ export class Holder {
     }
 
     const revealedDisclosures = disclosures.filter((disclosure) => {
-      return disclosedList.some((undisclosed) => {
+      return disclosedList.some((disclosed) => {
         return (
-          (undisclosed.key && disclosure.key === undisclosed.key && disclosure.value === undisclosed.value) ||
-          (!undisclosed.key && undisclosed.value && disclosure.value === undisclosed.value)
+          (disclosed.key && disclosure.key === disclosed.key && disclosure.value === disclosed.value) ||
+          (!disclosed.key && disclosed.value && disclosure.value === disclosed.value)
         );
       });
     });
