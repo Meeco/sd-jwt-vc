@@ -25,7 +25,15 @@ Here's an example:
 import { DisclosureFrame, Hasher, SDJWTPayload, Signer, base64encode } from '@meeco/sd-jwt';
 import { createHash } from 'crypto';
 import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, exportJWK, generateKeyPair } from 'jose';
-import { HasherConfig, Issuer, SignerConfig, VCClaims, defaultHashAlgorithm, supportedAlgorithm } from '../src/index';
+import {
+  CreateSDJWTPayload,
+  HasherConfig,
+  Issuer,
+  SignerConfig,
+  VCClaims,
+  defaultHashAlgorithm,
+  supportedAlgorithm,
+} from '@meeco/sd-jwt-vc';
 
 const hasherCallbackFn = function (alg: string = defaultHashAlgorithm): Hasher {
   return (data: string): string => {
@@ -76,7 +84,7 @@ async function main() {
 
   const holderPublicKey = await exportJWK(keyPair.publicKey);
 
-  const payload: SDJWTPayload = {
+  const payload: CreateSDJWTPayload = {
     iat: Date.now(),
     cnf: {
       jwk: holderPublicKey,
@@ -118,7 +126,7 @@ To use the Holder class, you need to create an instance of it by passing in a Ho
 ```typescript
 import { KeyBindingVerifier, Signer, decodeJWT } from '@meeco/sd-jwt';
 import { JWK, JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK, jwtVerify } from 'jose';
-import { Holder, SignerConfig, supportedAlgorithm } from 'src';
+import { Holder, SignerConfig, supportedAlgorithm } from '@meeco/sd-jwt-vc';
 
 const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
   return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
@@ -223,7 +231,7 @@ Here's an example:
 import { Hasher, KeyBindingVerifier, base64encode, decodeJWT } from '@meeco/sd-jwt';
 import { createHash } from 'crypto';
 import { JWK, KeyLike, importJWK, jwtVerify } from 'jose';
-import { Verifier, defaultHashAlgorithm, supportedAlgorithm } from 'src';
+import { Verifier, defaultHashAlgorithm, supportedAlgorithm } from '@meeco/sd-jwt-vc';
 
 function verifierCallbackFn(publicKey: Uint8Array | KeyLike) {
   return async (jwt: string): Promise<boolean> => {
