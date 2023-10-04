@@ -6,7 +6,7 @@ import {
   HasherConfig,
   Issuer,
   SignerConfig,
-  VCClaims,
+  VCClaimsWithVCDataModel,
   defaultHashAlgorithm,
   supportedAlgorithm,
 } from '../dev/src';
@@ -29,7 +29,7 @@ async function main() {
 
   const hasher: HasherConfig = {
     alg: 'sha256',
-    callback: hasherCallbackFn('sha256'),
+    callback: hasherCallbackFn('sha-256'),
   };
   const signer: SignerConfig = {
     alg: supportedAlgorithm.EdDSA,
@@ -45,22 +45,34 @@ async function main() {
     cnf: {
       jwk: holderPublicKey,
     },
-    iss: 'https://valid.issuer.url',
+    iss: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
   };
 
-  const vcClaims: VCClaims = {
-    type: 'VerifiableCredential',
-    status: {
-      idx: 'statusIndex',
-      uri: 'https://valid.status.url',
-    },
-    person: {
-      name: 'test person',
-      age: 25,
+  const vcClaims: VCClaimsWithVCDataModel = {
+    vc: {
+      '@context': ['https://www.w3.org/ns/credentials/v2'],
+      id: '9bcc9aaa-3bdc-4414-9450-739c295c752c',
+      type: 'StudentID',
+      issuer: 'did:ebsi:zvHWX359A3CvfJnCYaAiAde',
+      validFrom: '2023-01-01T00:00:00Z',
+      validUntil: '2033-01-01T00:00:00Z',
+      credentialSubject: {
+        id: 'did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbsDbVZXdb3jzCagESyY4EE2x7Yjx3gNwctoEuRCKKDrdNP3HPFtG8RTvBiYStT5ghBHhHizH2Dy6xQtW3Pd2SecizL9b2jzDCMr7Ka5cRAWZFwvqwAtwTT7xet769y9ERh6',
+        familyName: 'Carroll',
+        givenName: 'Lewis',
+        birthDate: '1832-01-27',
+        student: true,
+      },
+      credentialSchema: {
+        id: 'https://api-pilot.ebsi.eu/trusted-schemas-registry/v2/schemas/0x23039e6356ea6b703ce672e7cfac0b42765b150f63df78e2bd18ae785787f6a2',
+        type: 'FullJsonSchemaValidator2021',
+      },
     },
   };
 
-  const sdVCClaimsDisclosureFrame: DisclosureFrame = { person: { _sd: ['name', 'age'] } };
+  const sdVCClaimsDisclosureFrame: DisclosureFrame = {
+    vc: { credentialSubject: { _sd: ['familyName', 'givenName', 'birthDate', 'student'] } },
+  };
 
   const result = await issuer.createVCSDJWT(vcClaims, payload, sdVCClaimsDisclosureFrame);
   console.log(result);
