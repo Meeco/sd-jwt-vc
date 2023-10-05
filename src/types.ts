@@ -36,15 +36,17 @@ export interface VCClaims {
   [key: string]: unknown;
 }
 
+type VCDataModelStatusList = {
+  id: string;
+  type: string;
+};
+
 export interface VCClaimsWithVCDataModel {
   vc: Extensible<{
     '@context': string[] | string;
     type: string[] | string;
     credentialSubject: Record<string, any>;
-    credentialStatus?: {
-      id: string;
-      type: string;
-    };
+    credentialStatus?: VCDataModelStatusList;
     evidence?: any;
     termsOfUse?: any;
   }>;
