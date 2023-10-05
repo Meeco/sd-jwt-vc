@@ -4,10 +4,6 @@ import { supportedAlgorithm } from './util.js';
 export const SD_JWT_FORMAT_SEPARATOR = '~';
 
 export type JWT = string;
-export interface CredentialStatus {
-  idx: string;
-  uri: string;
-}
 
 export interface Cnf {
   jwk: JWK;
@@ -35,9 +31,23 @@ export interface PresentSDJWTPayload extends JWTPayload {
 
 export interface VCClaims {
   type: string;
-  status?: CredentialStatus;
+  status?: Record<string, any>;
   sub?: string;
   [key: string]: unknown;
+}
+
+export interface VCClaimsWithVCDataModel {
+  vc: Extensible<{
+    '@context': string[] | string;
+    type: string[] | string;
+    credentialSubject: Record<string, any>;
+    credentialStatus?: {
+      id: string;
+      type: string;
+    };
+    evidence?: any;
+    termsOfUse?: any;
+  }>;
 }
 
 export interface IssuerMetadata {
@@ -61,3 +71,5 @@ export interface JSONWebKeySet {
 }
 
 export type NonceGenerator = (length?: number) => string;
+
+type Extensible<T> = T & { [x: string]: any };

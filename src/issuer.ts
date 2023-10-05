@@ -1,5 +1,5 @@
 import { DisclosureFrame, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
-import { HasherConfig, JWT, SignerConfig, VCClaims } from './types.js';
+import { CreateSDJWTPayload, HasherConfig, JWT, SignerConfig, VCClaims, VCClaimsWithVCDataModel } from './types.js';
 import { isValidUrl } from './util.js';
 
 export class Issuer {
@@ -44,12 +44,17 @@ export class Issuer {
    * @returns The VC SD-JWT.
    */
   async createVCSDJWT(
-    claims: VCClaims,
-    sdJWTPayload: SDJWTPayload,
+    vcClaims: VCClaims | VCClaimsWithVCDataModel,
+    sdJWTPayload: CreateSDJWTPayload,
     sdVCClaimsDisclosureFrame: DisclosureFrame = {},
     saltGenerator?: SaltGenerator,
   ): Promise<JWT> {
-    this.validateVCClaims(claims);
+    if (!vcClaims) throw new Error('vcClaims is required');
+    if (!sdJWTPayload) throw new Error('sdJWTPayload is required');
+
+    if (typeof vcClaims === 'object' && !vcClaims.vc) {
+      this.validateVCClaims(vcClaims as VCClaims);
+    }
 
     this.validateSDJWTPayload(sdJWTPayload);
 
@@ -59,7 +64,7 @@ export class Issuer {
           typ: Issuer.SD_JWT_TYP,
           alg: this.signer.alg,
         },
-        { ...sdJWTPayload, ...claims },
+        { ...sdJWTPayload, ...vcClaims },
         sdVCClaimsDisclosureFrame,
         {
           signer: this.signer.callback,
@@ -119,11 +124,8 @@ export class Issuer {
     if (!claims.type || typeof claims.type !== 'string') {
       throw new Error('Payload type is required and must be a string');
     }
-    if (
-      claims.status &&
-      (typeof claims.status !== 'object' || !claims.status?.idx || !isValidUrl(claims.status?.uri))
-    ) {
-      throw new Error('Payload status must be an object with idx and uri properties');
+    if (claims.status && typeof claims.status !== 'object') {
+      throw new Error('Payload status must be an object');
     }
   }
 }

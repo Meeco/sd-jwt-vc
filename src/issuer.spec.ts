@@ -1,9 +1,9 @@
 import { generateKeyPair } from 'jose';
 
-import { DisclosureFrame, SDJWTPayload, decodeDisclosure, decodeJWT } from '@meeco/sd-jwt';
+import { DisclosureFrame, decodeDisclosure, decodeJWT } from '@meeco/sd-jwt';
 import { Issuer } from './issuer';
 import { hasherCallbackFn, signerCallbackFn } from './test-utils/helpers';
-import { HasherConfig, SD_JWT_FORMAT_SEPARATOR, SignerConfig, VCClaims } from './types';
+import { CreateSDJWTPayload, HasherConfig, SD_JWT_FORMAT_SEPARATOR, SignerConfig, VCClaims } from './types';
 import { supportedAlgorithm } from './util';
 
 describe('Issuer', () => {
@@ -34,7 +34,7 @@ describe('Issuer', () => {
       crv: 'P-256',
     };
 
-    const payload: SDJWTPayload = {
+    const payload: CreateSDJWTPayload = {
       iat: Date.now(),
       cnf: {
         jwk: holderPublicKey,
@@ -295,35 +295,7 @@ describe('Issuer', () => {
         status: 'invalid-status',
       };
 
-      expect(() => issuer.validateVCClaims(claims as any)).toThrowError(
-        'Payload status must be an object with idx and uri properties',
-      );
-    });
-
-    it('should throw an error if status.idx is missing', () => {
-      const claims = {
-        type: 'VerifiableCredential',
-        status: {
-          uri: 'https://valid.status.url',
-        },
-      };
-
-      expect(() => issuer.validateVCClaims(claims as any)).toThrowError(
-        'Payload status must be an object with idx and uri properties',
-      );
-    });
-
-    it('should throw an error if status.uri is missing', () => {
-      const claims = {
-        type: 'VerifiableCredential',
-        status: {
-          idx: 'statusIndex',
-        },
-      };
-
-      expect(() => issuer.validateVCClaims(claims as any)).toThrowError(
-        'Payload status must be an object with idx and uri properties',
-      );
+      expect(() => issuer.validateVCClaims(claims as any)).toThrowError('Payload status must be an object');
     });
 
     it('should not throw an error if all properties are valid', () => {
