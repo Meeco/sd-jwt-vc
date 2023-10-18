@@ -44,7 +44,7 @@ const hasherCallbackFn = function (alg: string = defaultHashAlgorithm): Hasher {
 
 const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
   return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
-    return new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey);
+    return (await new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey)).split('.').pop();
   };
 };
 
@@ -130,7 +130,7 @@ import { Holder, SignerConfig, supportedAlgorithm } from '@meeco/sd-jwt-vc';
 
 const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
   return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
-    return new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey);
+    return (await new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey)).split('.').pop();
   };
 };
 

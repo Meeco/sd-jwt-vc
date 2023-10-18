@@ -1,4 +1,4 @@
-import { Disclosure, JWK, KeyBindingVerifier, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
+import { Disclosure, JWK, KeyBindingVerifier, base64encode, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
 import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR, SignerConfig } from './types.js';
 import { isValidUrl } from './util.js';
 
@@ -45,7 +45,14 @@ export class Holder {
         iat: Date.now(),
       };
 
-      const jwt = await this.signer.callback(protectedHeader, presentSDJWTPayload);
+      const signature: string = await this.signer.callback(protectedHeader, presentSDJWTPayload);
+
+      const jwt: string = [
+        base64encode(JSON.stringify(protectedHeader)),
+        base64encode(JSON.stringify(presentSDJWTPayload)),
+        signature,
+      ].join('.');
+
       return { keyBindingJWT: jwt, nonce };
     } catch (error: any) {
       throw new Error(`Failed to get Key Binding JWT: ${error.message}`);

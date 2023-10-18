@@ -5,8 +5,8 @@ import { NonceGenerator } from '../types';
 import { defaultHashAlgorithm, supportedAlgorithm } from '../util';
 
 export function signerCallbackFn(privateKey: Uint8Array | KeyLike): Signer {
-  return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
-    return new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey);
+  return async (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
+    return (await new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey)).split('.').pop();
   };
 }
 
