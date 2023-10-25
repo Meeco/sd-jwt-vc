@@ -4,7 +4,9 @@ import {
   KeyBindingVerifier,
   SDJWTPayload,
   Verifier as VerifierCallbackFn,
+  VerifySdJwtOptions,
   decodeJWT,
+  decodeSDJWT,
   verifySDJWT,
 } from '@meeco/sd-jwt';
 import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types.js';
@@ -24,14 +26,30 @@ export class Verifier {
     sdJWT: JWT,
     verifierCallbackFn: VerifierCallbackFn,
     hasherCallbackFn: Hasher,
-    kbVeriferCallbackFn: KeyBindingVerifier,
+    kbVeriferCallbackFn?: KeyBindingVerifier,
   ): Promise<SDJWTPayload> {
     try {
-      const result = await verifySDJWT(sdJWT, verifierCallbackFn, () => Promise.resolve(hasherCallbackFn), {
-        kb: {
+      const { keyBindingJWT } = decodeSDJWT(sdJWT);
+      if (keyBindingJWT) {
+        if (!kbVeriferCallbackFn) {
+          throw new Error('Missing key binding verifier callback function');
+        }
+
+        const decodedKeyBindingJWT = decodeJWT(keyBindingJWT);
+        const { payload } = decodedKeyBindingJWT;
+        const { aud, nonce, iat } = payload;
+        if (!aud || !nonce || !iat) {
+          throw new Error('Missing aud, nonce or iat in key binding JWT');
+        }
+      }
+
+      const options: VerifySdJwtOptions = {};
+      if (kbVeriferCallbackFn) {
+        options.kb = {
           verifier: kbVeriferCallbackFn,
-        },
-      });
+        };
+      }
+      const result = await verifySDJWT(sdJWT, verifierCallbackFn, () => Promise.resolve(hasherCallbackFn), options);
       return result;
     } catch (error) {
       console.error(`Error verifying VC SD-JWT: ${error}`);
