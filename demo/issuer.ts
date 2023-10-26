@@ -6,7 +6,6 @@ import {
   HasherConfig,
   Issuer,
   SignerConfig,
-  VCClaimsWithVCDataModel,
   defaultHashAlgorithm,
   supportedAlgorithm,
 } from '../dev/src';
@@ -18,18 +17,20 @@ const hasherCallbackFn = function (alg: string = defaultHashAlgorithm): Hasher {
   };
 };
 
-const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
-  return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
-    return new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey);
+function signerCallbackFn(privateKey: Uint8Array | KeyLike): Signer {
+  return async (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
+    const signedJWT = await new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey);
+    const signature = signedJWT.split('.').pop() || '';
+    return signature;
   };
-};
+}
 
 async function main() {
   const keyPair = await generateKeyPair(supportedAlgorithm.EdDSA);
 
   const hasher: HasherConfig = {
     alg: 'sha256',
-    callback: hasherCallbackFn('sha-256'),
+    callback: hasherCallbackFn('sha256'),
   };
   const signer: SignerConfig = {
     alg: supportedAlgorithm.EdDSA,
@@ -48,7 +49,7 @@ async function main() {
     iss: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
   };
 
-  const vcClaims: VCClaimsWithVCDataModel = {
+  const vcClaims = {
     vc: {
       '@context': ['https://www.w3.org/ns/credentials/v2'],
       id: '9bcc9aaa-3bdc-4414-9450-739c295c752c',
