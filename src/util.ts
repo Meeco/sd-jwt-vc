@@ -40,21 +40,26 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
   const wellKnownPath = `.well-known/${issuerPath}`;
 
   if (!jwt.payload.iss || !isValidUrl(jwt.payload.iss)) {
-    throw new Error('Invalid issuer URL');
+    throw new Error('Invalid issuer well-known URL');
   }
 
   const url = new URL(jwt.payload.iss);
   const baseUrl = `${url.protocol}//${url.host}`;
   const issuerUrl = `${baseUrl}/${wellKnownPath}`;
 
-  const response = await fetch(issuerUrl);
-  const responseJson = await response?.json();
+  let responseJson: any;
+  try {
+    const response = await fetch(issuerUrl);
+    responseJson = await response.json();
+  } catch (error) {
+    throw new Error(`Failed to fetch or parse the response from ${issuerUrl} as JSON. Error: ${error.message}`);
+  }
 
   if (!responseJson) {
     throw new Error('Issuer response not found');
   }
   if (!responseJson.issuer || responseJson.issuer !== jwt.payload.iss) {
-    throw new Error('Issuer response does not contain the correct issuer');
+    throw new Error("The response from the issuer's well-known URI does not match the expected issuer");
   }
 
   let issuerPublicKeyJWK: JWK | undefined;

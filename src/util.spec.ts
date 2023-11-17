@@ -131,7 +131,7 @@ describe('getIssuerPublicKeyFromIss', () => {
     });
 
     await expect(getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
-      'Issuer response does not contain the correct issuer',
+      "The response from the issuer's well-known URI does not match the expected issuer",
     );
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch).toHaveBeenCalledWith(issuerUrl);
@@ -199,7 +199,69 @@ describe('getIssuerPublicKeyFromIss', () => {
     });
 
     await expect(getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
-      'Issuer response does not contain the correct issuer',
+      "The response from the issuer's well-known URI does not match the expected issuer",
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(issuerUrl);
+  });
+
+  it('should throw an error if well-known retrun empty response', async () => {
+    const jwt = decodeJWT(sdJwtVC);
+    const wellKnownPath = `.well-known/${issuerPath}`;
+    const url = new URL(jwt.payload.iss);
+    const baseUrl = `${url.protocol}//${url.host}`;
+    const issuerUrl = `${baseUrl}/${wellKnownPath}`;
+    const jwksResponseJson = {};
+
+    (global as any).fetch = jest.fn().mockResolvedValueOnce({
+      json: () => Promise.resolve(jwksResponseJson),
+    });
+
+    await expect(getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
+      "The response from the issuer's well-known URI does not match the expected issuer",
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(issuerUrl);
+  });
+
+  it('should throw an error if well-known retrun 404', async () => {
+    const jwt = decodeJWT(sdJwtVC);
+    const wellKnownPath = `.well-known/${issuerPath}`;
+    const url = new URL(jwt.payload.iss);
+    const baseUrl = `${url.protocol}//${url.host}`;
+    const issuerUrl = `${baseUrl}/${wellKnownPath}`;
+    const jwksResponseJson = {
+      status: 404,
+      json: () => Promise.reject(new Error('Issuer response not found')),
+    };
+
+    (global as any).fetch = jest.fn().mockResolvedValueOnce({
+      json: () => Promise.resolve(jwksResponseJson),
+    });
+
+    await expect(getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
+      "The response from the issuer's well-known URI does not match the expected issuer",
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(issuerUrl);
+  });
+
+  it('should throw an error if well-known retrun invalid response', async () => {
+    const jwt = decodeJWT(sdJwtVC);
+    const wellKnownPath = `.well-known/${issuerPath}`;
+    const url = new URL(jwt.payload.iss);
+    const baseUrl = `${url.protocol}//${url.host}`;
+    const issuerUrl = `${baseUrl}/${wellKnownPath}`;
+
+    (global as any).fetch = jest.fn().mockResolvedValueOnce({
+      invalid: () =>
+        Promise.resolve(
+          'Failed to fetch or parse the response from https://valid.issuer.url/.well-known/jwt-issuer/user/1234 as JSON. Error: response.json is not a function',
+        ),
+    });
+
+    await expect(getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
+      'Failed to fetch or parse the response from https://valid.issuer.url/.well-known/jwt-issuer/user/1234 as JSON. Error: response.json is not a function',
     );
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch).toHaveBeenCalledWith(issuerUrl);
