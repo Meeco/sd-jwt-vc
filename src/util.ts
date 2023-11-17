@@ -1,4 +1,5 @@
 import { JWK, decodeJWT } from '@meeco/sd-jwt';
+import { SDJWTVCError } from './errors';
 import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types';
 
 export enum supportedAlgorithm {
@@ -40,7 +41,7 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
   const wellKnownPath = `.well-known/${issuerPath}`;
 
   if (!jwt.payload.iss || !isValidUrl(jwt.payload.iss)) {
-    throw new Error('Invalid issuer well-known URL');
+    throw new SDJWTVCError('Invalid issuer well-known URL');
   }
 
   const url = new URL(jwt.payload.iss);
@@ -52,14 +53,14 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
     const response = await fetch(issuerUrl);
     responseJson = await response.json();
   } catch (error) {
-    throw new Error(`Failed to fetch or parse the response from ${issuerUrl} as JSON. Error: ${error.message}`);
+    throw new SDJWTVCError(`Failed to fetch or parse the response from ${issuerUrl} as JSON. Error: ${error.message}`);
   }
 
   if (!responseJson) {
-    throw new Error('Issuer response not found');
+    throw new SDJWTVCError('Issuer response not found');
   }
   if (!responseJson.issuer || responseJson.issuer !== jwt.payload.iss) {
-    throw new Error("The response from the issuer's well-known URI does not match the expected issuer");
+    throw new SDJWTVCError("The response from the issuer's well-known URI does not match the expected issuer");
   }
 
   let issuerPublicKeyJWK: JWK | undefined;
@@ -73,7 +74,7 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
   }
 
   if (!issuerPublicKeyJWK) {
-    throw new Error('Issuer public key JWK not found');
+    throw new SDJWTVCError('Issuer public key JWK not found');
   }
 
   return issuerPublicKeyJWK;
@@ -88,7 +89,7 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
  */
 export function getIssuerPublicKeyJWK(jwks: any, kid?: string): JWK | undefined {
   if (!jwks || !jwks.keys) {
-    throw new Error('Issuer response does not contain jwks or jwks_uri');
+    throw new SDJWTVCError('Issuer response does not contain jwks or jwks_uri');
   }
 
   if (kid) {

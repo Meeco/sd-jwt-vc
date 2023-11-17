@@ -1,4 +1,5 @@
 import { Disclosure, JWK, KeyBindingVerifier, base64encode, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
+import { SDJWTVCError } from './errors.js';
 import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR, SignerConfig } from './types.js';
 import { isValidUrl } from './util.js';
 
@@ -12,10 +13,10 @@ export class Holder {
    */
   constructor(signer: SignerConfig) {
     if (!signer?.callback || typeof signer?.callback !== 'function') {
-      throw new Error('Signer function is required');
+      throw new SDJWTVCError('Signer function is required');
     }
     if (!signer?.alg || typeof signer?.alg !== 'string') {
-      throw new Error('algo used for Signer function is required');
+      throw new SDJWTVCError('algo used for Signer function is required');
     }
 
     this.signer = signer;
@@ -55,7 +56,7 @@ export class Holder {
 
       return { keyBindingJWT: jwt, nonce };
     } catch (error: any) {
-      throw new Error(`Failed to get Key Binding JWT: ${error.message}`);
+      throw new SDJWTVCError(`Failed to get Key Binding JWT: ${error.message}`);
     }
   }
 
@@ -76,11 +77,11 @@ export class Holder {
     options?: { nonce?: string; audience?: string; keyBindingVerifyCallbackFn?: KeyBindingVerifier },
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce?: string }> {
     if (options.audience && (typeof options.audience !== 'string' || !isValidUrl(options.audience))) {
-      throw new Error('Invalid audience parameter');
+      throw new SDJWTVCError('Invalid audience parameter');
     }
 
     if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
-      throw new Error('Invalid sdJWT parameter');
+      throw new SDJWTVCError('Invalid sdJWT parameter');
     }
 
     const [sdJWTPayload, _] = sdJWT.split(SD_JWT_FORMAT_SEPARATOR);
@@ -89,7 +90,7 @@ export class Holder {
     const { jwk: holderPublicKeyJWK } = (jwt.payload as CreateSDJWTPayload).cnf || {};
 
     if (!holderPublicKeyJWK) {
-      throw new Error('No holder public key in SD-JWT');
+      throw new SDJWTVCError('No holder public key in SD-JWT');
     }
 
     const { keyBindingJWT } = await this.getKeyBindingJWT(options.audience, options.nonce);
@@ -114,7 +115,7 @@ export class Holder {
    */
   revealDisclosures(sdJWT: JWT, disclosedList: Disclosure[]): JWT {
     if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
-      throw new Error('No disclosures in SD-JWT');
+      throw new SDJWTVCError('No disclosures in SD-JWT');
     }
 
     const { disclosures, keyBindingJWT } = decodeSDJWT(sdJWT);
@@ -154,7 +155,7 @@ export class Holder {
     try {
       await keyBindingVerifierCallbackFn(keyBindingJWT, holderPublicKeyJWK);
     } catch (e) {
-      throw new Error('Failed to verify key binding JWT: SD JWT holder public key does not match private key');
+      throw new SDJWTVCError('Failed to verify key binding JWT: SD JWT holder public key does not match private key');
     }
   }
 }

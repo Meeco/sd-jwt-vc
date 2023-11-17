@@ -12,6 +12,10 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 - Moved `getIssuerPublicKeyFromWellKnownURI` from `verifier` to `utils`.
 - Removed console.log from the `verifyVCSDJWT` method in the `verifier` class.
 
+### Added
+
+- Introduce `SDJWTVCError` generic error class.
+
 ## 0.0.4 - 2023-10-18
 
 ### Changed

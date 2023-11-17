@@ -1,4 +1,5 @@
 import { DisclosureFrame, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
+import { SDJWTVCError } from './errors.js';
 import { CreateSDJWTPayload, HasherConfig, JWT, SignerConfig, VCClaims, VCClaimsWithVCDataModel } from './types.js';
 import { isValidUrl } from './util.js';
 
@@ -9,17 +10,17 @@ export class Issuer {
 
   constructor(signer: SignerConfig, hasher: HasherConfig) {
     if (!signer?.callback || typeof signer?.callback !== 'function') {
-      throw new Error('Signer function is required');
+      throw new SDJWTVCError('Signer function is required');
     }
     if (!signer?.alg || typeof signer?.alg !== 'string') {
-      throw new Error('algo used for Signer function is required');
+      throw new SDJWTVCError('algo used for Signer function is required');
     }
 
     if (!hasher?.callback || typeof hasher?.callback !== 'function') {
-      throw new Error('Hasher function is required');
+      throw new SDJWTVCError('Hasher function is required');
     }
     if (!hasher?.alg || typeof hasher?.alg !== 'string') {
-      throw new Error('algo used for Hasher function is required');
+      throw new SDJWTVCError('algo used for Hasher function is required');
     }
 
     this.signer = signer;
@@ -49,8 +50,8 @@ export class Issuer {
     sdVCClaimsDisclosureFrame: DisclosureFrame = {},
     saltGenerator?: SaltGenerator,
   ): Promise<JWT> {
-    if (!vcClaims) throw new Error('vcClaims is required');
-    if (!sdJWTPayload) throw new Error('sdJWTPayload is required');
+    if (!vcClaims) throw new SDJWTVCError('vcClaims is required');
+    if (!sdJWTPayload) throw new SDJWTVCError('sdJWTPayload is required');
 
     if (typeof vcClaims === 'object' && !vcClaims.vc) {
       this.validateVCClaims(vcClaims as VCClaims);
@@ -79,7 +80,7 @@ export class Issuer {
 
       return jwt;
     } catch (error: any) {
-      throw new Error(`Failed to create VCSDJWT: ${error.message}`);
+      throw new SDJWTVCError(`Failed to create VCSDJWT: ${error.message}`);
     }
   }
 
@@ -89,27 +90,27 @@ export class Issuer {
    */
   validateSDJWTPayload(sdJWTPayload: SDJWTPayload) {
     if (!sdJWTPayload.iss || !isValidUrl(sdJWTPayload.iss)) {
-      throw new Error('Issuer iss (issuer) is required and must be a valid URL');
+      throw new SDJWTVCError('Issuer iss (issuer) is required and must be a valid URL');
     }
     if (!sdJWTPayload.iat || typeof sdJWTPayload.iat !== 'number') {
-      throw new Error('Payload iat (Issued at - seconds since Unix epoch) is required and must be a number');
+      throw new SDJWTVCError('Payload iat (Issued at - seconds since Unix epoch) is required and must be a number');
     }
     if (!sdJWTPayload.cnf || typeof sdJWTPayload.cnf !== 'object' || !sdJWTPayload.cnf.jwk) {
-      throw new Error('Payload cnf is required and must be a JWK format');
+      throw new SDJWTVCError('Payload cnf is required and must be a JWK format');
     }
     if (typeof sdJWTPayload.cnf.jwk !== 'object' || typeof sdJWTPayload.cnf.jwk.kty !== 'string') {
-      throw new Error('Payload cnf.jwk must be valid JWK format');
+      throw new SDJWTVCError('Payload cnf.jwk must be valid JWK format');
     }
 
     if (sdJWTPayload.nbf && typeof sdJWTPayload.nbf !== 'number') {
-      throw new Error('Payload nbf must be a number');
+      throw new SDJWTVCError('Payload nbf must be a number');
     }
     if (sdJWTPayload.exp && typeof sdJWTPayload.exp !== 'number') {
-      throw new Error('Payload exp must be a number');
+      throw new SDJWTVCError('Payload exp must be a number');
     }
 
     if (sdJWTPayload.sub && typeof sdJWTPayload.sub !== 'string') {
-      throw new Error('Payload sub must be a string');
+      throw new SDJWTVCError('Payload sub must be a string');
     }
   }
 
@@ -119,13 +120,13 @@ export class Issuer {
    */
   validateVCClaims(claims: VCClaims) {
     if (!claims || typeof claims !== 'object') {
-      throw new Error('Payload claims is required and must be an object');
+      throw new SDJWTVCError('Payload claims is required and must be an object');
     }
     if (!claims.type || typeof claims.type !== 'string') {
-      throw new Error('Payload type is required and must be a string');
+      throw new SDJWTVCError('Payload type is required and must be a string');
     }
     if (claims.status && typeof claims.status !== 'object') {
-      throw new Error('Payload status must be an object');
+      throw new SDJWTVCError('Payload status must be an object');
     }
   }
 }

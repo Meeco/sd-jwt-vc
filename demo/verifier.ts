@@ -1,7 +1,7 @@
 import { Hasher, KeyBindingVerifier, base64encode, decodeJWT } from '@meeco/sd-jwt';
 import { createHash } from 'crypto';
 import { JWK, KeyLike, importJWK, jwtVerify } from 'jose';
-import { Verifier, defaultHashAlgorithm, supportedAlgorithm } from '../dev/src';
+import { SDJWTVCError, Verifier, defaultHashAlgorithm, supportedAlgorithm } from '../dev/src';
 
 function verifierCallbackFn(publicKey: Uint8Array | KeyLike) {
   return async (jwt: string): Promise<boolean> => {
@@ -23,15 +23,15 @@ function kbVeriferCallbackFn(expectedAud: string, expectedNonce: string): KeyBin
 
     if (expectedAud || expectedNonce) {
       if (payload.aud !== expectedAud) {
-        throw new Error('aud mismatch');
+        throw new SDJWTVCError('aud mismatch');
       }
       if (payload.nonce !== expectedNonce) {
-        throw new Error('nonce mismatch');
+        throw new SDJWTVCError('nonce mismatch');
       }
     }
 
     if (!Object.values(supportedAlgorithm).includes(header.alg as supportedAlgorithm)) {
-      throw new Error('unsupported algorithm');
+      throw new SDJWTVCError('unsupported algorithm');
     }
 
     const holderKey = await importJWK(holderJWK, header.alg);
