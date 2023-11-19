@@ -1,6 +1,6 @@
 import { KeyBindingVerifier, Signer, decodeJWT } from '@meeco/sd-jwt';
 import { JWK, JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK, jwtVerify } from 'jose';
-import { Holder, SignerConfig, supportedAlgorithm } from '../dev/src';
+import { Holder, SDJWTVCError, SignerConfig, supportedAlgorithm } from '../dev/src';
 
 const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
   return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
@@ -13,7 +13,7 @@ const keyBindingVerifierCallbackFn = function (): KeyBindingVerifier {
     const { header } = decodeJWT(kbjwt);
 
     if (!Object.values(supportedAlgorithm).includes(header.alg as supportedAlgorithm)) {
-      throw new Error('unsupported algorithm');
+      throw new SDJWTVCError('unsupported algorithm');
     }
 
     const holderKey = await importJWK(holderJWK, header.alg);

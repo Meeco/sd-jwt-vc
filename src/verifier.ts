@@ -1,6 +1,5 @@
 import {
   Hasher,
-  JWK,
   KeyBindingVerifier,
   SDJWTPayload,
   Verifier as VerifierCallbackFn,
@@ -9,8 +8,8 @@ import {
   decodeSDJWT,
   verifySDJWT,
 } from '@meeco/sd-jwt';
-import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types.js';
-import { isValidUrl } from './util.js';
+import { SDJWTVCError } from './errors.js';
+import { JWT } from './types.js';
 
 export class Verifier {
   /**
@@ -28,99 +27,27 @@ export class Verifier {
     hasherCallbackFn: Hasher,
     kbVeriferCallbackFn?: KeyBindingVerifier,
   ): Promise<SDJWTPayload> {
-    try {
-      const { keyBindingJWT } = decodeSDJWT(sdJWT);
-      if (keyBindingJWT) {
-        if (!kbVeriferCallbackFn) {
-          throw new Error('Missing key binding verifier callback function');
-        }
-
-        const decodedKeyBindingJWT = decodeJWT(keyBindingJWT);
-        const { payload } = decodedKeyBindingJWT;
-        const { aud, nonce, iat } = payload;
-        if (!aud || !nonce || !iat) {
-          throw new Error('Missing aud, nonce or iat in key binding JWT');
-        }
+    const { keyBindingJWT } = decodeSDJWT(sdJWT);
+    if (keyBindingJWT) {
+      if (!kbVeriferCallbackFn) {
+        throw new SDJWTVCError('Missing key binding verifier callback function');
       }
 
-      const options: VerifySdJwtOptions = {};
-      if (kbVeriferCallbackFn) {
-        options.kb = {
-          verifier: kbVeriferCallbackFn,
-        };
+      const decodedKeyBindingJWT = decodeJWT(keyBindingJWT);
+      const { payload } = decodedKeyBindingJWT;
+      const { aud, nonce, iat } = payload;
+      if (!aud || !nonce || !iat) {
+        throw new SDJWTVCError('Missing aud, nonce or iat in key binding JWT');
       }
-      const result = await verifySDJWT(sdJWT, verifierCallbackFn, () => Promise.resolve(hasherCallbackFn), options);
-      return result;
-    } catch (error) {
-      console.error(`Error verifying VC SD-JWT: ${error}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Get the issuer public key from the issuer.
-   * @param sdJwtVC The SD-JWT to verify.
-   * @param issuerPath The issuer path postfix to .well-known/{issuerPath}, to get the issuer public key. e.g. 'jwt-issuer/user/1234'
-   * @throws An error if the issuer public key cannot be fetched.
-   * @returns The issuer public key.
-   */
-  public async getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPath: string): Promise<JWK> {
-    const s = sdJwtVC.split(SD_JWT_FORMAT_SEPARATOR);
-    const jwt = decodeJWT(s.shift() || '');
-
-    const wellKnownPath = `.well-known/${issuerPath}`;
-
-    if (!jwt.payload.iss || !isValidUrl(jwt.payload.iss)) {
-      throw new Error('Invalid issuer URL');
     }
 
-    const url = new URL(jwt.payload.iss);
-    const baseUrl = `${url.protocol}//${url.host}`;
-    const issuerUrl = `${baseUrl}/${wellKnownPath}`;
-
-    const response = await fetch(issuerUrl);
-    const responseJson = await response.json();
-
-    if (!responseJson) {
-      throw new Error('Issuer response not found');
+    const options: VerifySdJwtOptions = {};
+    if (kbVeriferCallbackFn) {
+      options.kb = {
+        verifier: kbVeriferCallbackFn,
+      };
     }
-    if (!responseJson.issuer || responseJson.issuer !== jwt.payload.iss) {
-      throw new Error('Issuer response does not contain the correct issuer');
-    }
-
-    let issuerPublicKeyJWK: JWK | undefined;
-
-    if (responseJson.jwks_uri) {
-      const jwksResponse = await fetch(responseJson.jwks_uri);
-      const jwksResponseJson = await jwksResponse.json();
-      issuerPublicKeyJWK = this.getIssuerPublicKeyJWK(jwksResponseJson, jwt.header.kid);
-    } else {
-      issuerPublicKeyJWK = this.getIssuerPublicKeyJWK(responseJson.jwks, jwt.header.kid);
-    }
-
-    if (!issuerPublicKeyJWK) {
-      throw new Error('Issuer public key JWK not found');
-    }
-
-    return issuerPublicKeyJWK;
-  }
-
-  /**
-   * Gets the issuer public key JWK.
-   * @param jwks The jwks to use.
-   * @param kid The kid to use.
-   * @throws An error if the issuer public key JWK cannot be found.
-   * @returns The issuer public key JWK.
-   */
-  private getIssuerPublicKeyJWK(jwks: any, kid?: string): JWK | undefined {
-    if (!jwks || !jwks.keys) {
-      throw new Error('Issuer response does not contain jwks or jwks_uri');
-    }
-
-    if (kid) {
-      return jwks.keys.find((key: any) => key.kid === kid);
-    } else {
-      return jwks.keys[0];
-    }
+    const result = await verifySDJWT(sdJWT, verifierCallbackFn, () => Promise.resolve(hasherCallbackFn), options);
+    return result;
   }
 }
