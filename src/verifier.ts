@@ -8,6 +8,7 @@ import {
   decodeSDJWT,
   verifySDJWT,
 } from '@meeco/sd-jwt';
+import { SDJWTVCError } from './errors.js';
 import { JWT } from './types.js';
 
 export class Verifier {
@@ -29,14 +30,14 @@ export class Verifier {
     const { keyBindingJWT } = decodeSDJWT(sdJWT);
     if (keyBindingJWT) {
       if (!kbVeriferCallbackFn) {
-        throw new Error('Missing key binding verifier callback function');
+        throw new SDJWTVCError('Missing key binding verifier callback function');
       }
 
       const decodedKeyBindingJWT = decodeJWT(keyBindingJWT);
       const { payload } = decodedKeyBindingJWT;
       const { aud, nonce, iat } = payload;
       if (!aud || !nonce || !iat) {
-        throw new Error('Missing aud, nonce or iat in key binding JWT');
+        throw new SDJWTVCError('Missing aud, nonce or iat in key binding JWT');
       }
     }
 

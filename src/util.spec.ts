@@ -1,4 +1,5 @@
 import { JWK, decodeJWT } from '@meeco/sd-jwt';
+import { SDJWTVCError } from './errors';
 import { getIssuerPublicKeyFromWellKnownURI } from './util';
 
 describe('getIssuerPublicKeyFromIss', () => {
@@ -44,7 +45,7 @@ describe('getIssuerPublicKeyFromIss', () => {
           json: () => Promise.resolve(jwks),
         });
       } else {
-        throw new Error(`Unexpected URL: ${url}`);
+        throw new SDJWTVCError(`Unexpected URL: ${url}`);
       }
     });
 
@@ -89,7 +90,7 @@ describe('getIssuerPublicKeyFromIss', () => {
           json: () => Promise.resolve(responseJson),
         });
       } else {
-        throw new Error(`Unexpected URL: ${url}`);
+        throw new SDJWTVCError(`Unexpected URL: ${url}`);
       }
     });
 
@@ -232,7 +233,7 @@ describe('getIssuerPublicKeyFromIss', () => {
     const issuerUrl = `${baseUrl}/${wellKnownPath}`;
     const jwksResponseJson = {
       status: 404,
-      json: () => Promise.reject(new Error('Issuer response not found')),
+      json: () => Promise.reject(new SDJWTVCError('Issuer response not found')),
     };
 
     (global as any).fetch = jest.fn().mockResolvedValueOnce({

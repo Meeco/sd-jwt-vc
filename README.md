@@ -172,7 +172,7 @@ const keyBindingVerifierCallbackFn = function (): KeyBindingVerifier {
     const { header } = decodeJWT(kbjwt);
 
     if (!Object.values(supportedAlgorithm).includes(header.alg as supportedAlgorithm)) {
-      throw new Error('unsupported algorithm');
+      throw new SDJWTVCError('unsupported algorithm');
     }
 
     const holderKey = await importJWK(holderJWK, header.alg);
@@ -253,15 +253,15 @@ function kbVeriferCallbackFn(expectedAud: string, expectedNonce: string): KeyBin
 
     if (expectedAud || expectedNonce) {
       if (payload.aud !== expectedAud) {
-        throw new Error('aud mismatch');
+        throw new SDJWTVCError('aud mismatch');
       }
       if (payload.nonce !== expectedNonce) {
-        throw new Error('nonce mismatch');
+        throw new SDJWTVCError('nonce mismatch');
       }
     }
 
     if (!Object.values(supportedAlgorithm).includes(header.alg as supportedAlgorithm)) {
-      throw new Error('unsupported algorithm');
+      throw new SDJWTVCError('unsupported algorithm');
     }
 
     const holderKey = await importJWK(holderJWK, header.alg);
