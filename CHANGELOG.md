@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.0.6 - 2023-11-25
+
+### Fixed
+
+- `getIssuerPublicKeyFromWellKnownURI` utility function jwt-issuer discovery URI forming 
+  - don't ignore `/jwt-issuer` path part that is static and should always be present as per [specification](https://www.ietf.org/archive/id/draft-terbu-oauth-sd-jwt-vc-00.html#section-5)
+
 ## 0.0.5 - 2023-11-17
 
 ### Changed
