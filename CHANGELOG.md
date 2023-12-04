@@ -11,6 +11,7 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 
 - The `CreateSDJWTPayload` type now requires `vct` fields in the payload.
 - The optional `status` field has been moved from `VCClaims` to `CreateSDJWTPayload` type.
+- Demo scripts have been updated.
 
 ### Removals
 
