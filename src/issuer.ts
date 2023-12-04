@@ -1,6 +1,6 @@
 import { DisclosureFrame, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
-import { CreateSDJWTPayload, HasherConfig, JWT, SignerConfig, VCClaims, VCClaimsWithVCDataModel } from './types.js';
+import { CreateSDJWTPayload, HasherConfig, JWT, SignerConfig, VCClaims } from './types.js';
 import { isValidUrl } from './util.js';
 
 export class Issuer {
@@ -45,7 +45,7 @@ export class Issuer {
    * @returns The VC SD-JWT.
    */
   async createVCSDJWT(
-    vcClaims: VCClaims | VCClaimsWithVCDataModel,
+    vcClaims: VCClaims,
     sdJWTPayload: CreateSDJWTPayload,
     sdVCClaimsDisclosureFrame: DisclosureFrame = {},
     saltGenerator?: SaltGenerator,
@@ -102,15 +102,16 @@ export class Issuer {
       throw new SDJWTVCError('Payload cnf.jwk must be valid JWK format');
     }
 
-    if (sdJWTPayload.nbf && typeof sdJWTPayload.nbf !== 'number') {
-      throw new SDJWTVCError('Payload nbf must be a number');
-    }
-    if (sdJWTPayload.exp && typeof sdJWTPayload.exp !== 'number') {
-      throw new SDJWTVCError('Payload exp must be a number');
+    if (!sdJWTPayload.vct || typeof sdJWTPayload.vct !== 'string') {
+      throw new SDJWTVCError('vct value MUST be a case-sensitive string');
     }
 
-    if (sdJWTPayload.sub && typeof sdJWTPayload.sub !== 'string') {
-      throw new SDJWTVCError('Payload sub must be a string');
+    const prefixes = ['http', 'https', 'https://', 'http://'];
+    if (
+      prefixes.some((prefix) => (sdJWTPayload.vct as string).startsWith(prefix)) &&
+      !isValidUrl(sdJWTPayload.vct as any)
+    ) {
+      throw new SDJWTVCError('vct value MUST be a valid URL');
     }
   }
 
@@ -121,9 +122,6 @@ export class Issuer {
   validateVCClaims(claims: VCClaims) {
     if (!claims || typeof claims !== 'object') {
       throw new SDJWTVCError('Payload claims is required and must be an object');
-    }
-    if (!claims.type || typeof claims.type !== 'string') {
-      throw new SDJWTVCError('Payload type is required and must be a string');
     }
     if (claims.status && typeof claims.status !== 'object') {
       throw new SDJWTVCError('Payload status must be an object');

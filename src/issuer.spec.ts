@@ -40,14 +40,14 @@ describe('Issuer', () => {
         jwk: holderPublicKey,
       },
       iss: 'https://valid.issuer.url',
+      vct: 'https://credentials.example.com/identity_credential',
+      status: {
+        idx: 0,
+        uri: 'https://valid.status.url',
+      },
     };
 
     const vcClaims: VCClaims = {
-      type: 'VerifiableCredential',
-      status: {
-        idx: 'statusIndex',
-        uri: 'https://valid.status.url',
-      },
       person: {
         name: 'test person',
         age: 25,
@@ -73,6 +73,8 @@ describe('Issuer', () => {
     expect(jwtPayload.nbf).toBeUndefined();
     expect(jwtPayload.exp).toBeUndefined();
     expect(jwtPayload.cnf).toEqual(payload.cnf);
+    expect(jwtPayload.vct).toEqual(payload.vct);
+    expect(jwtPayload.status).toEqual(payload.status);
 
     // remove empty string
     s.pop();
@@ -235,6 +237,42 @@ describe('Issuer', () => {
       expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrowError('Payload cnf.jwk must be valid JWK format');
     });
 
+    it('should throw an error if vct is not a valid String', () => {
+      const sdJWTPayload = {
+        iat: Date.now(),
+        cnf: {
+          jwk: {
+            kty: 'EC',
+            crv: 'P-256',
+            x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
+            y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
+          },
+        },
+        iss: 'https://valid.issuer.url',
+        vct: 123,
+      };
+
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrowError('vct value MUST be a case-sensitive string');
+    });
+
+    it('should throw an error if vct is not a valid url', () => {
+      const sdJWTPayload = {
+        iat: Date.now(),
+        cnf: {
+          jwk: {
+            kty: 'EC',
+            crv: 'P-256',
+            x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
+            y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
+          },
+        },
+        iss: 'https://valid.issuer.url',
+        vct: 'httpinvalid-url',
+      };
+
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrowError('vct value MUST be a valid URL');
+    });
+
     it('should not throw an error if all properties are valid', () => {
       const sdJWTPayload = {
         iat: Date.now(),
@@ -247,6 +285,7 @@ describe('Issuer', () => {
           },
         },
         iss: 'https://valid.issuer.url',
+        vct: 'https://credentials.example.com/identity_credential',
       };
 
       expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).not.toThrow();
@@ -259,33 +298,6 @@ describe('Issuer', () => {
 
       expect(() => issuer.validateVCClaims(claims as any)).toThrowError(
         'Payload claims is required and must be an object',
-      );
-    });
-
-    it('should throw an error if type is missing', () => {
-      const claims = {
-        status: {
-          idx: 'statusIndex',
-          uri: 'https://valid.status.url',
-        },
-      };
-
-      expect(() => issuer.validateVCClaims(claims as any)).toThrowError(
-        'Payload type is required and must be a string',
-      );
-    });
-
-    it('should throw an error if type is not a string', () => {
-      const claims = {
-        type: {},
-        status: {
-          idx: 'statusIndex',
-          uri: 'https://valid.status.url',
-        },
-      };
-
-      expect(() => issuer.validateVCClaims(claims as any)).toThrowError(
-        'Payload type is required and must be a string',
       );
     });
 
