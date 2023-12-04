@@ -36,6 +36,7 @@ function kbVeriferCallbackFn(expectedAud: string, expectedNonce: string): KeyBin
 
     const holderKey = await importJWK(holderJWK, header.alg);
     const verifiedKbJWT = await jwtVerify(kbjwt, holderKey);
+    console.log('verifiedKbJWT', verifiedKbJWT);
     return !!verifiedKbJWT;
   };
 }
@@ -44,15 +45,16 @@ async function main() {
   const verifier = new Verifier();
 
   const vcSDJWTWithoutkeyBindingJWT =
-    'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
+    'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJpYXQiOjE3MDE3MzE2NTM4NDUsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHA6Ly9pc3N1ZXIudXJsL2p3a3MiLCJ2Y3QiOiJodHRwczovL2NyZWRlbnRpYWxzLmV4YW1wbGUuY29tL2lkZW50aXR5X2NyZWRlbnRpYWwiLCJfc2QiOlsiN29JR0VBWWZ1R0dXTzdrMmhZbHhEQVlOTF9OdHZiVWhjRFd1dF9yNjVMcyIsIkpuNTl2SFBoVVFoRkNVUGh2d3R4cTNVTjhOb2NMXzdDaDJZeWhHVzFuU3MiLCJTa09FXzVzQktzTG9GMnRMbWhvcmo4cm1yeUlNc1FhTTJVai1VcW55YzFzIiwiVUFzc0l6S1RGMFZnUTFLM3ZLWVpOVm9uR29RTDJ6cmR3eDN0V25taUpnZyIsImNmZXd6dGZJeFBYX0hlRzNtRzBDTUs4TDJWSVVDcGZlSGRtSzhnMzJnNVkiLCJlNDRkVUdFZUJqY2xodEN0QnJBbUM4czVuMENBWnNOUm85dk5LTUdMdmhJIiwiaEE5VGg5elhZdVFwMF9IYTdqb09NbVRpVHhVcjdLdnNnSU5zb0pPT09IOCIsIm5xMDE3UWJnYk9HcWptSktMOU1tT1F2aWxFbHRNOGFEUHNZQnVMbkZDc1kiLCJvbUk2S2ZyckpzbDhhQnZWODV0T0lIQWQzcXpxM2pQbWlqVlp3RXVBRkI0Il0sIl9zZF9hbGciOiJzaGEyNTYifQ.ioLFasOlNizRDImDxxP1rvOLX0cf9010up2zhzA6EqTRhc5Cpy9qxCWPu5G1tOWicNqysPqi88ATqD4HRD_zRg~WyJwZVhLajk0TU5DaEc3TkZLIiwiYWRkcmVzcyIseyJzdHJlZXRfYWRkcmVzcyI6IjEyMyBNYWluIFN0IiwibG9jYWxpdHkiOiJBbnl0b3duIiwicmVnaW9uIjoiQW55c3RhdGUiLCJjb3VudHJ5IjoiVVMifV0~';
   const kbJWT =
-    'eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL3ZhbGlkLnZlcmlmaWVyLnVybCIsIm5vbmNlIjoibklkQmJOZWdScUNYQmw4WU9rZlZkZz09IiwiaWF0IjoxNjk1NzgzOTgzMDQxfQ.YwgHkYEpCFRHny5L4KdnU_qARVHL2jAScodRqfF5UP50nbryqIl4i1OuaxuQKala_uYNT-e0D4xzghoxWE56SQ';
+    'eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL3ZhbGlkLnZlcmlmaWVyLnVybCIsIm5vbmNlIjoibklkQmJOZ1JxQ1hCbDhZT2tmVmRnPT0iLCJpYXQiOjE3MDE3MzE4MjQ3Nzl9.27pQYld_NI5dcmAz4m2a_vKnQ_SYCkYxykmKTmYvH1Qg2xUt3G9tCTsX68tU3kFS6_m9VlgdBdSSsOaoX1ALKA';
 
-  const nonce = 'nIdBbNegRqCXBl8YOkfVdg==';
+  const nonce = 'nIdBbNgRqCXBl8YOkfVdg==';
   const issuerPubKey = await importJWK({
-    crv: 'Ed25519',
-    x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
-    kty: 'OKP',
+    kty: 'EC',
+    x: 'MRbP5zJSo9CxUla-ThmzvwUl_3f76bCwrnuQOPK54dQ',
+    y: 't1VIetPpyi7rV8ARvaas1VmPmgd6YGo1e-Z5aqedwEU',
+    crv: 'P-256',
   });
 
   const verifywithkbjwt = await verifier.verifyVCSDJWT(
@@ -65,7 +67,7 @@ async function main() {
   console.log(verifywithkbjwt);
 
   const verifywithoutkbjwt = await verifier.verifyVCSDJWT(
-    vcSDJWTWithoutkeyBindingJWT + kbJWT,
+    vcSDJWTWithoutkeyBindingJWT,
     verifierCallbackFn(issuerPubKey),
     hasherCallbackFn(defaultHashAlgorithm),
   );

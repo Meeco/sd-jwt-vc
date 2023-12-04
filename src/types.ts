@@ -21,6 +21,8 @@ export interface CreateSDJWTPayload extends JWTPayload {
   iss: string;
   iat: number;
   cnf: Cnf;
+  vct: string;
+  status?: Record<string, any>;
 }
 
 export interface PresentSDJWTPayload extends JWTPayload {
@@ -30,26 +32,7 @@ export interface PresentSDJWTPayload extends JWTPayload {
 }
 
 export interface VCClaims {
-  type: string;
-  status?: Record<string, any>;
-  sub?: string;
   [key: string]: unknown;
-}
-
-type VCDataModelStatusList = {
-  id: string;
-  type: string;
-};
-
-export interface VCClaimsWithVCDataModel {
-  vc: Extensible<{
-    '@context': string[] | string;
-    type: string[] | string;
-    credentialSubject: Record<string, any>;
-    credentialStatus?: VCDataModelStatusList;
-    evidence?: any;
-    termsOfUse?: any;
-  }>;
 }
 
 export interface IssuerMetadata {
@@ -73,5 +56,3 @@ export interface JSONWebKeySet {
 }
 
 export type NonceGenerator = (length?: number) => string;
-
-type Extensible<T> = T & { [x: string]: any };
