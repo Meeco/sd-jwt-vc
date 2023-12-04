@@ -64,7 +64,7 @@ async function main() {
     cnf: {
       jwk: holderPublicKey,
     },
-    iss: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+    iss: 'http://issuer.url/jwks',
     vct: 'https://credentials.example.com/identity_credential',
   };
 
