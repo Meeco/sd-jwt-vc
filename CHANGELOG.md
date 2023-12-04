@@ -5,11 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.0.7 - 2023-12-04
+
+### Updates
+
+- The `CreateSDJWTPayload` type now requires `vct` fields in the payload.
+- The optional `status` field has been moved from `VCClaims` to `CreateSDJWTPayload` type.
+
+### Removals
+
+- Removed the `VCClaimsWithVCDataModel` type, which was specific to the w3c data model, from the VCSDJWT creation process. This change allows for the creation of a VCSDJWT with any data model.
+
 ## 0.0.6 - 2023-11-25
 
 ### Fixed
 
-- `getIssuerPublicKeyFromWellKnownURI` utility function jwt-issuer discovery URI forming 
+- `getIssuerPublicKeyFromWellKnownURI` utility function jwt-issuer discovery URI forming
   - don't ignore `/jwt-issuer` path part that is static and should always be present as per [specification](https://www.ietf.org/archive/id/draft-terbu-oauth-sd-jwt-vc-00.html#section-5)
 
 ## 0.0.5 - 2023-11-17
