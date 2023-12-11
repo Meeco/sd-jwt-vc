@@ -56,3 +56,17 @@ export interface JSONWebKeySet {
 }
 
 export type NonceGenerator = (length?: number) => string;
+
+export type CreateSDJWTPayloadKeys = keyof CreateSDJWTPayload;
+export const ReservedJWTClaimKeys: CreateSDJWTPayloadKeys[] = [
+  'iss',
+  'iat',
+  'cnf',
+  'vct',
+  'status',
+  'jti',
+  'sub',
+  'aud',
+  'nbf',
+  'exp',
+];

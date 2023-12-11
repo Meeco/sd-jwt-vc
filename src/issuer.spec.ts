@@ -3,7 +3,14 @@ import { generateKeyPair } from 'jose';
 import { DisclosureFrame, decodeDisclosure, decodeJWT } from '@meeco/sd-jwt';
 import { Issuer } from './issuer';
 import { hasherCallbackFn, signerCallbackFn } from './test-utils/helpers';
-import { CreateSDJWTPayload, HasherConfig, SD_JWT_FORMAT_SEPARATOR, SignerConfig, VCClaims } from './types';
+import {
+  CreateSDJWTPayload,
+  HasherConfig,
+  ReservedJWTClaimKeys,
+  SD_JWT_FORMAT_SEPARATOR,
+  SignerConfig,
+  VCClaims,
+} from './types';
 import { supportedAlgorithm } from './util';
 
 describe('Issuer', () => {
@@ -301,25 +308,57 @@ describe('Issuer', () => {
       );
     });
 
-    it('should throw an error if status is not an object', () => {
-      const claims = {
-        type: 'VerifiableCredential',
-        status: 'invalid-status',
-      };
+    it('should throw an error if claims is not an object', () => {
+      expect(() => issuer.validateVCClaims('not an object' as any)).toThrow(
+        'Payload claims is required and must be an object',
+      );
+    });
 
-      expect(() => issuer.validateVCClaims(claims as any)).toThrowError('Payload status must be an object');
+    it('should throw an error if claims contains a reserved JWT payload key', () => {
+      const claims = { [ReservedJWTClaimKeys[0]]: 'value' };
+      expect(() => issuer.validateVCClaims(claims)).toThrow(
+        `Claim contains reserved JWTPayload key: ${ReservedJWTClaimKeys[0]}`,
+      );
     });
 
     it('should not throw an error if all properties are valid', () => {
       const claims = {
-        type: 'VerifiableCredential',
-        status: {
-          idx: 'statusIndex',
-          uri: 'https://valid.status.url',
+        person: {
+          name: 'test person',
+          age: 25,
         },
       };
 
       expect(() => issuer.validateVCClaims(claims)).not.toThrow();
+    });
+  });
+
+  describe('validateSDVCClaimsDisclosureFrame', () => {
+    it('should not throw an error if sdVCClaimsDisclosureFrame is not provided', () => {
+      const result = issuer.validateSDVCClaimsDisclosureFrame(undefined);
+      expect(() => result).not.toThrow();
+      expect(result).toBeUndefined();
+    });
+
+    it('should not throw an error if sdVCClaimsDisclosureFrame is provided but _sd is not present', () => {
+      const frame = {};
+      const result = issuer.validateSDVCClaimsDisclosureFrame(frame);
+      expect(() => result).not.toThrow();
+      expect(result).toBeUndefined();
+    });
+
+    it('should not throw an error if sdVCClaimsDisclosureFrame is provided and _sd is an array but contains no reserved JWT payload keys', () => {
+      const frame = { _sd: ['key1', 'key2'] };
+      const result = issuer.validateSDVCClaimsDisclosureFrame(frame);
+      expect(() => result).not.toThrow();
+      expect(result).toBeUndefined();
+    });
+
+    it('should throw an error if sdVCClaimsDisclosureFrame is provided and _sd is an array that contains a reserved JWT payload key', () => {
+      const frame = { _sd: [ReservedJWTClaimKeys[0]] };
+      expect(() => issuer.validateSDVCClaimsDisclosureFrame(frame)).toThrow(
+        `Disclosure frame contains reserved JWTPayload key: ${ReservedJWTClaimKeys[0]}`,
+      );
     });
   });
 });

@@ -1,6 +1,6 @@
 import { DisclosureFrame, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
-import { CreateSDJWTPayload, HasherConfig, JWT, SignerConfig, VCClaims } from './types.js';
+import { CreateSDJWTPayload, HasherConfig, JWT, ReservedJWTClaimKeys, SignerConfig, VCClaims } from './types.js';
 import { isValidUrl } from './util.js';
 
 export class Issuer {
@@ -53,11 +53,9 @@ export class Issuer {
     if (!vcClaims) throw new SDJWTVCError('vcClaims is required');
     if (!sdJWTPayload) throw new SDJWTVCError('sdJWTPayload is required');
 
-    if (typeof vcClaims === 'object' && !vcClaims.vc) {
-      this.validateVCClaims(vcClaims as VCClaims);
-    }
-
+    this.validateVCClaims(vcClaims as VCClaims);
     this.validateSDJWTPayload(sdJWTPayload);
+    this.validateSDVCClaimsDisclosureFrame(sdVCClaimsDisclosureFrame);
 
     try {
       const jwt = await issueSDJWT(
@@ -123,8 +121,25 @@ export class Issuer {
     if (!claims || typeof claims !== 'object') {
       throw new SDJWTVCError('Payload claims is required and must be an object');
     }
-    if (claims.status && typeof claims.status !== 'object') {
-      throw new SDJWTVCError('Payload status must be an object');
+
+    for (const key of ReservedJWTClaimKeys) {
+      if (key in claims) {
+        throw new SDJWTVCError(`Claim contains reserved JWTPayload key: ${key}`);
+      }
+    }
+  }
+
+  /**
+   * Validates the SD-VC claims disclosure frame.
+   * @param sdVCClaimsDisclosureFrame The SD-VC claims disclosure frame to validate.
+   */
+  validateSDVCClaimsDisclosureFrame(sdVCClaimsDisclosureFrame: DisclosureFrame) {
+    if (sdVCClaimsDisclosureFrame?._sd && Array.isArray(sdVCClaimsDisclosureFrame._sd)) {
+      for (const key of sdVCClaimsDisclosureFrame._sd) {
+        if (ReservedJWTClaimKeys.includes(key as any)) {
+          throw new SDJWTVCError(`Disclosure frame contains reserved JWTPayload key: ${key}`);
+        }
+      }
     }
   }
 }
