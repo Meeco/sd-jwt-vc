@@ -335,17 +335,23 @@ describe('Issuer', () => {
 
   describe('validateSDVCClaimsDisclosureFrame', () => {
     it('should not throw an error if sdVCClaimsDisclosureFrame is not provided', () => {
-      expect(() => issuer.validateSDVCClaimsDisclosureFrame(undefined)).not.toThrow();
+      const result = issuer.validateSDVCClaimsDisclosureFrame(undefined);
+      expect(() => result).not.toThrow();
+      expect(result).toBeUndefined();
     });
 
     it('should not throw an error if sdVCClaimsDisclosureFrame is provided but _sd is not present', () => {
       const frame = {};
-      expect(() => issuer.validateSDVCClaimsDisclosureFrame(frame)).not.toThrow();
+      const result = issuer.validateSDVCClaimsDisclosureFrame(frame);
+      expect(() => result).not.toThrow();
+      expect(result).toBeUndefined();
     });
 
     it('should not throw an error if sdVCClaimsDisclosureFrame is provided and _sd is an array but contains no reserved JWT payload keys', () => {
       const frame = { _sd: ['key1', 'key2'] };
-      expect(() => issuer.validateSDVCClaimsDisclosureFrame(frame)).not.toThrow();
+      const result = issuer.validateSDVCClaimsDisclosureFrame(frame);
+      expect(() => result).not.toThrow();
+      expect(result).toBeUndefined();
     });
 
     it('should throw an error if sdVCClaimsDisclosureFrame is provided and _sd is an array that contains a reserved JWT payload key', () => {
