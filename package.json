@@ -64,6 +64,6 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@meeco/sd-jwt": "^0.0.3"
+    "@meeco/sd-jwt": "^0.0.4"
   }
 }
