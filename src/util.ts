@@ -1,6 +1,6 @@
 import { JWK, decodeJWT } from '@meeco/sd-jwt';
-import { SDJWTVCError } from './errors';
-import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types';
+import { SDJWTVCError } from './errors.js';
+import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types.js';
 
 export enum supportedAlgorithm {
   EdDSA = 'EdDSA',

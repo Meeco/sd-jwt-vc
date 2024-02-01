@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.0.9 - 2024-02-01
+
+- update `sd-jwt` dependency
+- bugfix: ESM imports
+
 ## 0.0.8 - 2023-12-08
 
 - Added validation that ensures JWT reserved claim keys are not present in both the claims and the disclosure frame.
