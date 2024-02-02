@@ -61,9 +61,9 @@ export class Issuer {
     try {
       const jwt = await issueSDJWT(
         {
+          ...header,
           typ: Issuer.SD_JWT_TYP,
           alg: this.signer.alg,
-          ...header,
         },
         { ...sdJWTPayload, ...vcClaims },
         sdVCClaimsDisclosureFrame,
