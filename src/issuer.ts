@@ -49,6 +49,7 @@ export class Issuer {
     sdJWTPayload: CreateSDJWTPayload,
     sdVCClaimsDisclosureFrame: DisclosureFrame = {},
     saltGenerator?: SaltGenerator,
+    header?: Record<string, any>,
   ): Promise<JWT> {
     if (!vcClaims) throw new SDJWTVCError('vcClaims is required');
     if (!sdJWTPayload) throw new SDJWTVCError('sdJWTPayload is required');
@@ -62,6 +63,7 @@ export class Issuer {
         {
           typ: Issuer.SD_JWT_TYP,
           alg: this.signer.alg,
+          ...header,
         },
         { ...sdJWTPayload, ...vcClaims },
         sdVCClaimsDisclosureFrame,
