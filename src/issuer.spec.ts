@@ -62,8 +62,15 @@ describe('Issuer', () => {
     };
 
     const sdVCClaimsDisclosureFrame: DisclosureFrame = { person: { _sd: ['name', 'age'] } };
+    const sdVCHeader = {
+      kid: '1b94c',
+      x5c: [
+        'MIIDQjCCAiqgAwIBAgIGATz/FuLiMA0GCSqGSIb3DQEBBQUAMGIxCzAJB...',
+        'MIIDQjCCAiqgAwIBAgIGATz/FuLiMA0GCSqGSIb3DQEBBQUAMGIxCzAJC...',
+      ],
+    };
 
-    const VCSDJwt = await issuer.createVCSDJWT(vcClaims, payload, sdVCClaimsDisclosureFrame);
+    const VCSDJwt = await issuer.createVCSDJWT(vcClaims, payload, sdVCClaimsDisclosureFrame, undefined, sdVCHeader);
 
     expect(VCSDJwt).toBeDefined();
     expect(typeof VCSDJwt).toBe('string');
@@ -74,6 +81,8 @@ describe('Issuer', () => {
 
     expect(header.alg).toEqual(signer.alg);
     expect(header.typ).toEqual('vc+sd-jwt');
+    expect(header.x5c).toEqual(sdVCHeader.x5c);
+    expect(header.kid).toEqual(sdVCHeader.kid);
 
     expect(jwtPayload.iss).toEqual(payload.iss);
     expect(jwtPayload.iat).toEqual(payload.iat);
