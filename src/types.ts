@@ -1,4 +1,4 @@
-import { Hasher, JWK, JWTPayload, Signer } from '@meeco/sd-jwt';
+import { DisclosureFrame, Hasher, JWK, JWTHeaderParameters, JWTPayload, SaltGenerator, Signer } from '@meeco/sd-jwt';
 import { supportedAlgorithm } from './util.js';
 
 export const SD_JWT_FORMAT_SEPARATOR = '~';
@@ -23,6 +23,14 @@ export interface CreateSDJWTPayload extends JWTPayload {
   cnf: Cnf;
   vct: string;
   status?: Record<string, any>;
+}
+
+export interface CreateSignedJWTOpts {
+  vcClaims: VCClaims;
+  sdJWTPayload: CreateSDJWTPayload;
+  sdVCClaimsDisclosureFrame?: DisclosureFrame;
+  saltGenerator?: SaltGenerator;
+  sdJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>;
 }
 
 export interface PresentSDJWTPayload extends JWTPayload {

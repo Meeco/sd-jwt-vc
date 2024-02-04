@@ -1,6 +1,14 @@
-import { DisclosureFrame, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
+import { DisclosureFrame, JWTHeaderParameters, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
-import { CreateSDJWTPayload, HasherConfig, JWT, ReservedJWTClaimKeys, SignerConfig, VCClaims } from './types.js';
+import {
+  CreateSDJWTPayload,
+  CreateSignedJWTOpts,
+  HasherConfig,
+  JWT,
+  ReservedJWTClaimKeys,
+  SignerConfig,
+  VCClaims,
+} from './types.js';
 import { isValidUrl } from './util.js';
 
 export class Issuer {
@@ -37,10 +45,12 @@ export class Issuer {
 
   /**
    * Creates a VC SD-JWT.
+   * @deprecated This method will be removed in the next version. Use `createSignedVCSDJWT` instead.
    * @param claims The VC claims.
    * @param sdJWTPayload The SD-JWT payload.
    * @param sdVCClaimsDisclosureFrame The SD-VC claims disclosure frame.
    * @param saltGenerator The salt generator.
+   * @param sdJWTHeader additional header parameters
    * @throws An error if the VC SD-JWT cannot be created.
    * @returns The VC SD-JWT.
    */
@@ -49,8 +59,16 @@ export class Issuer {
     sdJWTPayload: CreateSDJWTPayload,
     sdVCClaimsDisclosureFrame: DisclosureFrame = {},
     saltGenerator?: SaltGenerator,
-    header?: Record<string, any>,
+    sdJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>,
   ): Promise<JWT> {
+    return this.createSignedVCSDJWT({ vcClaims, sdJWTPayload, sdVCClaimsDisclosureFrame, saltGenerator, sdJWTHeader });
+  }
+
+  /**
+   * Creates a signed SD-JWT VC.
+   */
+  async createSignedVCSDJWT(opts: CreateSignedJWTOpts): Promise<JWT> {
+    const { vcClaims, sdJWTPayload, sdVCClaimsDisclosureFrame = {}, saltGenerator, sdJWTHeader } = opts;
     if (!vcClaims) throw new SDJWTVCError('vcClaims is required');
     if (!sdJWTPayload) throw new SDJWTVCError('sdJWTPayload is required');
 
@@ -61,7 +79,7 @@ export class Issuer {
     try {
       const jwt = await issueSDJWT(
         {
-          ...header,
+          ...sdJWTHeader,
           typ: Issuer.SD_JWT_TYP,
           alg: this.signer.alg,
         },
