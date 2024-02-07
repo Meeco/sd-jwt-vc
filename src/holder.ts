@@ -1,7 +1,8 @@
-import { Disclosure, JWK, KeyBindingVerifier, base64encode, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
+import { Disclosure, Hasher, JWK, KeyBindingVerifier, base64encode, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
 import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR, SignerConfig } from './types.js';
-import { isValidUrl } from './util.js';
+import { defaultHashAlgorithm, isValidUrl } from './util.js';
+import { hasherCallbackFn } from './test-utils/helpers.js';
 
 export class Holder {
   private signer: SignerConfig;
@@ -33,7 +34,11 @@ export class Holder {
    * @throws An error if the key binding JWT cannot be created.
    * @returns The key binding JWT.
    */
-  async getKeyBindingJWT(audience?: string, nonce?: string): Promise<{ keyBindingJWT: JWT; nonce?: string }> {
+  async getKeyBindingJWT(
+    audience: string,
+    nonce: string,
+    sdHash: string,
+  ): Promise<{ keyBindingJWT: JWT; nonce?: string }> {
     try {
       const protectedHeader = {
         typ: Holder.SD_KEY_BINDING_JWT_TYP,
@@ -43,6 +48,7 @@ export class Holder {
       const presentSDJWTPayload: PresentSDJWTPayload = {
         aud: audience,
         nonce,
+        sd_hash: sdHash,
         iat: Date.now(),
       };
 
@@ -93,15 +99,23 @@ export class Holder {
       throw new SDJWTVCError('No holder public key in SD-JWT');
     }
 
-    const { keyBindingJWT } = await this.getKeyBindingJWT(options.audience, options.nonce);
+    let sdHashAlgorithm = jwt.payload['_sd_alg'] as string;
+    if (!sdHashAlgorithm) {
+      sdHashAlgorithm = defaultHashAlgorithm;
+    }
+
+    const hasher: Hasher = hasherCallbackFn(sdHashAlgorithm);
+    const sdJwtHash: string = hasher(sdJWT);
+
+    const vcSDJWTWithRevealedDisclosures = this.revealDisclosures(sdJWT, disclosedList);
+
+    const { keyBindingJWT } = await this.getKeyBindingJWT(options.audience, options.nonce, sdJwtHash);
 
     if (options.keyBindingVerifyCallbackFn && typeof options.keyBindingVerifyCallbackFn === 'function') {
       await this.verifyKeyBinding(options.keyBindingVerifyCallbackFn, keyBindingJWT, holderPublicKeyJWK);
     }
 
-    let vcSDJWTWithkeyBindingJWT = `${sdJWT}${keyBindingJWT}`;
-
-    vcSDJWTWithkeyBindingJWT = this.revealDisclosures(vcSDJWTWithkeyBindingJWT, disclosedList);
+    const vcSDJWTWithkeyBindingJWT = `${vcSDJWTWithRevealedDisclosures}${keyBindingJWT}`;
 
     return { vcSDJWTWithkeyBindingJWT: vcSDJWTWithkeyBindingJWT, nonce: options.nonce };
   }
@@ -118,7 +132,7 @@ export class Holder {
       throw new SDJWTVCError('No disclosures in SD-JWT');
     }
 
-    const { disclosures, keyBindingJWT } = decodeSDJWT(sdJWT);
+    const { disclosures } = decodeSDJWT(sdJWT);
 
     if (!disclosures) {
       return sdJWT;
@@ -127,7 +141,7 @@ export class Holder {
     const compactJWT = sdJWT.split(SD_JWT_FORMAT_SEPARATOR)[0];
 
     if (!disclosedList || disclosedList.length === 0) {
-      return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}${keyBindingJWT}`;
+      return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}`;
     }
 
     const revealedDisclosures = disclosures.filter((disclosure) => {
@@ -138,7 +152,7 @@ export class Holder {
       .map((disclosure) => disclosure.disclosure)
       .join(SD_JWT_FORMAT_SEPARATOR);
 
-    return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}${revealedDisclosuresEncoded}${SD_JWT_FORMAT_SEPARATOR}${keyBindingJWT}`;
+    return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}${revealedDisclosuresEncoded}${SD_JWT_FORMAT_SEPARATOR}`;
   }
 
   /**
