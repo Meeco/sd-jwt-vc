@@ -148,6 +148,10 @@ export class Holder {
       return disclosedList.some((disclosed) => disclosed.disclosure === disclosure.disclosure);
     });
 
+    if (revealedDisclosures.length === 0) {
+      return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}`;
+    }
+
     const revealedDisclosuresEncoded = revealedDisclosures
       .map((disclosure) => disclosure.disclosure)
       .join(SD_JWT_FORMAT_SEPARATOR);
