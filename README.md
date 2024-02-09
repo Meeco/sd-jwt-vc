@@ -126,12 +126,22 @@ This is a TypeScript class that represents a holder of Verifiable Credentials (V
 
 #### Usage
 
-To use the Holder class, you need to create an instance of it by passing in a Holder Signer configuration object. Here's an example:
+To use the Holder class, you need to create an instance of it by passing in a Holder Signer configuration object and Hasher function resolver. Here's an example:
 
 ```typescript
-import { KeyBindingVerifier, Signer, decodeJWT } from '@meeco/sd-jwt';
+import { KeyBindingVerifier, Signer, decodeJWT, base64encode } from '@meeco/sd-jwt';
 import { JWK, JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK, jwtVerify } from 'jose';
 import { Holder, SignerConfig, supportedAlgorithm } from '@meeco/sd-jwt-vc';
+import { createHash } from 'crypto';
+
+const hasherFnResolver = (alg: string) => {
+  const hasher = (data: string): string => {
+    const digest = createHash(alg).update(data).digest();
+    return base64encode(digest);
+  }
+
+  return Promise.resolve(hasher);
+}
 
 const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
   return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
@@ -160,7 +170,7 @@ async function main() {
     alg: supportedAlgorithm.ES256,
     callback: signerCallbackFn(pk),
   };
-  const holder = new Holder(signer);
+  const holder = new Holder(signer, hasherFnResolver);
 }
 
 main();

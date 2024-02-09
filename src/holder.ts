@@ -1,18 +1,30 @@
-import { Disclosure, Hasher, JWK, KeyBindingVerifier, base64encode, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
+import {
+  Disclosure,
+  GetHasher,
+  Hasher,
+  JWK,
+  KeyBindingVerifier,
+  base64encode,
+  decodeJWT,
+  decodeSDJWT,
+} from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
 import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR, SignerConfig } from './types.js';
 import { defaultHashAlgorithm, isValidUrl } from './util.js';
-import { hasherCallbackFn } from './test-utils/helpers.js';
 
 export class Holder {
   private signer: SignerConfig;
+  private hasherFnResolver: GetHasher;
+
   public static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
 
   /**
    * Signer Config with callback function used for signing key binding JWT.
    * @param signer
+   * Hasher function resolver
+   * @param hasherFnResolver
    */
-  constructor(signer: SignerConfig) {
+  constructor(signer: SignerConfig, hasherFnResolver: GetHasher) {
     if (!signer?.callback || typeof signer?.callback !== 'function') {
       throw new SDJWTVCError('Signer function is required');
     }
@@ -20,11 +32,20 @@ export class Holder {
       throw new SDJWTVCError('algo used for Signer function is required');
     }
 
+    if (typeof hasherFnResolver !== 'function') {
+      throw new SDJWTVCError('Hasher function resolver is required');
+    }
+
     this.signer = signer;
+    this.hasherFnResolver = hasherFnResolver;
   }
 
   get getSigner() {
     return this.signer;
+  }
+
+  async getHasher(alg: string) {
+    return this.hasherFnResolver(alg);
   }
 
   /**
@@ -99,15 +120,10 @@ export class Holder {
       throw new SDJWTVCError('No holder public key in SD-JWT');
     }
 
-    let sdHashAlgorithm = jwt.payload['_sd_alg'] as string;
-    if (!sdHashAlgorithm) {
-      sdHashAlgorithm = defaultHashAlgorithm;
-    }
-
-    const hasher: Hasher = hasherCallbackFn(sdHashAlgorithm);
+    const shHashingAlgorithm = (jwt.payload['_sd_alg'] as string) || defaultHashAlgorithm;
+    const hasher: Hasher = await this.getHasher(shHashingAlgorithm);
 
     const vcSDJWTWithRevealedDisclosures = this.revealDisclosures(sdJWT, disclosedList);
-
     const sdJwtHash: string = hasher(vcSDJWTWithRevealedDisclosures);
 
     const { keyBindingJWT } = await this.getKeyBindingJWT(options.audience, options.nonce, sdJwtHash);

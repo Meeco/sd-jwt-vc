@@ -1,37 +1,48 @@
 import { decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
 import { generateKeyPair, importJWK } from 'jose';
 import { Holder } from './holder';
-import { keyBindingVerifierCallbackFn, signerCallbackFn } from './test-utils/helpers';
+import { hasherCallbackFn, keyBindingVerifierCallbackFn, signerCallbackFn } from './test-utils/helpers';
 import { SignerConfig } from './types';
 import { defaultHashAlgorithm, supportedAlgorithm } from './util';
 
 describe('Holder', () => {
   let holder: Holder;
 
+  const testHasherFn = (alg: string) => Promise.resolve(hasherCallbackFn(alg));
+
   beforeEach(async () => {
     const keyPair = await generateKeyPair(supportedAlgorithm.ES256);
-    holder = new Holder({
-      alg: supportedAlgorithm.ES256,
-      callback: signerCallbackFn(keyPair.privateKey),
-    });
+    holder = new Holder(
+      {
+        alg: supportedAlgorithm.ES256,
+        callback: signerCallbackFn(keyPair.privateKey),
+      },
+      testHasherFn,
+    );
   });
 
   describe('constructor', () => {
     it('should throw an error if signer callback is not provided', () => {
-      expect(() => new Holder({ alg: supportedAlgorithm.ES256, callback: undefined })).toThrowError(
+      expect(() => new Holder({ alg: supportedAlgorithm.ES256, callback: undefined }, testHasherFn)).toThrow(
         'Signer function is required',
       );
     });
 
     it('should throw an error if signer alg is not provided', () => {
-      expect(() => new Holder({ alg: undefined, callback: () => Promise.resolve('') })).toThrowError(
+      expect(() => new Holder({ alg: undefined, callback: () => Promise.resolve('') }, testHasherFn)).toThrow(
         'algo used for Signer function is required',
       );
     });
 
+    it('should throw an error if getHasherFn is not provided', () => {
+      expect(
+        () => new Holder({ alg: supportedAlgorithm.ES256, callback: () => Promise.resolve('') }, undefined),
+      ).toThrow('Hasher function resolver is required');
+    });
+
     it('should create an instance of Holder if all required parameters are provided', () => {
       const signer = { callback: () => Promise.resolve(''), alg: supportedAlgorithm.ES256 };
-      const holder = new Holder(signer);
+      const holder = new Holder(signer, testHasherFn);
       expect(holder).toBeInstanceOf(Holder);
       expect(holder.getSigner).toEqual(signer);
     });
@@ -66,7 +77,7 @@ describe('Holder', () => {
       alg: supportedAlgorithm.ES256,
       callback: signerCallbackFn(pk),
     };
-    const holder = new Holder(signer);
+    const holder = new Holder(signer, testHasherFn);
     const issuedSDJWT =
       'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
 
@@ -132,7 +143,7 @@ describe('Holder', () => {
           value: 'test person',
         },
       ];
-      expect(() => holder.revealDisclosures(sdJWT, disclosedList)).toThrowError('No disclosures in SD-JWT');
+      expect(() => holder.revealDisclosures(sdJWT, disclosedList)).toThrow('No disclosures in SD-JWT');
     });
 
     it('should exclude all disclosures', () => {
