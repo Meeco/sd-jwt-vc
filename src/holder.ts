@@ -105,9 +105,10 @@ export class Holder {
     }
 
     const hasher: Hasher = hasherCallbackFn(sdHashAlgorithm);
-    const sdJwtHash: string = hasher(sdJWT);
 
     const vcSDJWTWithRevealedDisclosures = this.revealDisclosures(sdJWT, disclosedList);
+
+    const sdJwtHash: string = hasher(vcSDJWTWithRevealedDisclosures);
 
     const { keyBindingJWT } = await this.getKeyBindingJWT(options.audience, options.nonce, sdJwtHash);
 
