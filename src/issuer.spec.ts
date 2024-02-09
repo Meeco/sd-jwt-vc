@@ -42,7 +42,7 @@ describe('Issuer', () => {
     };
 
     const payload: CreateSDJWTPayload = {
-      iat: Date.now(),
+      iat: Math.floor(Date.now() / 1000),
       cnf: {
         jwk: holderPublicKey,
       },
@@ -148,7 +148,7 @@ describe('Issuer', () => {
   describe('validateSDJWTPayload', () => {
     it('should throw an error if iss is missing', () => {
       const sdJWTPayload = {
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
         cnf: {
           jwk: {},
         },
@@ -161,7 +161,7 @@ describe('Issuer', () => {
 
     it('should throw an error if iss is not a valid URL', () => {
       const sdJWTPayload = {
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
         cnf: {
           jwk: {},
         },
@@ -196,13 +196,13 @@ describe('Issuer', () => {
       };
 
       expect(() => issuer.validateSDJWTPayload(sdJWTPayload as any)).toThrowError(
-        'Payload iat (Issued at - seconds since Unix epoch) is required and must be a number',
+        'Payload iat (Issued At - seconds since Unix epoch) is required and must be a number',
       );
     });
 
     it('should throw an error if cnf is missing', () => {
       const sdJWTPayload = {
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
         iss: 'https://valid.issuer.url',
       };
 
@@ -213,7 +213,7 @@ describe('Issuer', () => {
 
     it('should throw an error if cnf.jwk is missing', () => {
       const sdJWTPayload = {
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
         cnf: {},
         iss: 'https://valid.issuer.url',
       };
@@ -225,7 +225,7 @@ describe('Issuer', () => {
 
     it('should throw an error if cnf.jwk is not an object', () => {
       const sdJWTPayload = {
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
         cnf: {
           jwk: 'invalid-jwk',
         },
@@ -239,7 +239,7 @@ describe('Issuer', () => {
 
     it('should throw an error if cnf.jwk is missing kty', () => {
       const sdJWTPayload = {
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
         cnf: {
           jwk: {
             crv: 'P-256',
@@ -255,7 +255,7 @@ describe('Issuer', () => {
 
     it('should throw an error if vct is not a valid String', () => {
       const sdJWTPayload = {
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
         cnf: {
           jwk: {
             kty: 'EC',
@@ -273,7 +273,7 @@ describe('Issuer', () => {
 
     it('should throw an error if vct is not a valid url', () => {
       const sdJWTPayload = {
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
         cnf: {
           jwk: {
             kty: 'EC',
@@ -291,7 +291,7 @@ describe('Issuer', () => {
 
     it('should not throw an error if all properties are valid', () => {
       const sdJWTPayload = {
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
         cnf: {
           jwk: {
             kty: 'EC',

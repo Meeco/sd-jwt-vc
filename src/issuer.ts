@@ -1,5 +1,5 @@
 import { DisclosureFrame, JWTHeaderParameters, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
-import { SDJWTVCError } from './errors.js';
+import { SDJWTVCError, SDJWTVCErrorCode } from './errors.js';
 import {
   CreateSDJWTPayload,
   CreateSignedJWTOpts,
@@ -12,27 +12,24 @@ import {
 import { isValidUrl } from './util.js';
 
 export class Issuer {
+  private static readonly SD_JWT_TYP = 'vc+sd-jwt';
   private hasher: HasherConfig;
   private signer: SignerConfig;
-  private static SD_JWT_TYP = 'vc+sd-jwt';
 
   constructor(signer: SignerConfig, hasher: HasherConfig) {
-    if (!signer?.callback || typeof signer?.callback !== 'function') {
-      throw new SDJWTVCError('Signer function is required');
-    }
-    if (!signer?.alg || typeof signer?.alg !== 'string') {
-      throw new SDJWTVCError('algo used for Signer function is required');
-    }
-
-    if (!hasher?.callback || typeof hasher?.callback !== 'function') {
-      throw new SDJWTVCError('Hasher function is required');
-    }
-    if (!hasher?.alg || typeof hasher?.alg !== 'string') {
-      throw new SDJWTVCError('algo used for Hasher function is required');
-    }
-
+    this.validateConfig(signer, 'Signer');
+    this.validateConfig(hasher, 'Hasher');
     this.signer = signer;
     this.hasher = hasher;
+  }
+
+  private validateConfig(config: SignerConfig | HasherConfig, configName: string) {
+    if (!config.callback || typeof config.callback !== 'function') {
+      throw new SDJWTVCError(`${configName} callback function is required`, SDJWTVCErrorCode.InvalidCallback);
+    }
+    if (!config.alg || typeof config.alg !== 'string') {
+      throw new SDJWTVCError(`${configName} algorithm is required`, SDJWTVCErrorCode.InvalidAlgorithm);
+    }
   }
 
   // write getter for signer and hasher
