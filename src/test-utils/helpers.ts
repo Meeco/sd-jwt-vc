@@ -11,16 +11,23 @@ export function signerCallbackFn(privateKey: Uint8Array | KeyLike): Signer {
   };
 }
 
-export function kbVeriferCallbackFn(expectedAud: string, expectedNonce: string): KeyBindingVerifier {
+export function kbVeriferCallbackFn(
+  expectedAud: string,
+  expectedNonce: string,
+  expectedSdHash: string,
+): KeyBindingVerifier {
   return async (kbjwt: string, holderJWK: JWK) => {
     const { header, payload } = decodeJWT(kbjwt);
 
-    if (expectedAud || expectedNonce) {
+    if (expectedAud || expectedNonce || expectedSdHash) {
       if (payload.aud !== expectedAud) {
         throw new SDJWTVCError('aud mismatch');
       }
       if (payload.nonce !== expectedNonce) {
         throw new SDJWTVCError('nonce mismatch');
+      }
+      if (payload.sd_hash !== expectedSdHash) {
+        throw new SDJWTVCError('sd_hash mismatch');
       }
     }
 

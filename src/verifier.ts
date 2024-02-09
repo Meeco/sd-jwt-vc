@@ -35,9 +35,9 @@ export class Verifier {
 
       const decodedKeyBindingJWT = decodeJWT(keyBindingJWT);
       const { payload } = decodedKeyBindingJWT;
-      const { aud, nonce, iat } = payload;
-      if (!aud || !nonce || !iat) {
-        throw new SDJWTVCError('Missing aud, nonce or iat in key binding JWT');
+      const { aud, nonce, iat, sd_hash } = payload;
+      if (!aud || !nonce || !iat || !sd_hash) {
+        throw new SDJWTVCError('Missing aud, nonce, iat or sd_hash in key binding JWT');
       }
     }
 
