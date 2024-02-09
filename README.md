@@ -1,14 +1,19 @@
+[![npm](https://img.shields.io/npm/dt/@meeco/sd-jwt-vc.svg)](https://www.npmjs.com/package/@meeco/sd-jwt-vc)
+[![npm](https://img.shields.io/npm/v/@meeco/sd-jwt-vc.svg)](https://www.npmjs.com/package/@meeco/sd-jwt-vc)
+
 # SD-JWT-VC
 
-This is an implementation of [SD-JWT VC (I-D version latest)](https://drafts.oauth.net/oauth-sd-jwt-vc/draft-ietf-oauth-sd-jwt-vc.html) in typescript. It uses the [SD-JWT](https://github.com/Meeco/sd-jwt) library to create the SD JWTs.
+This is an implementation of [SD-JWT VC (I-D version 01)](https://drafts.oauth.net/oauth-sd-jwt-vc/draft-ietf-oauth-sd-jwt-vc.html) in Typescript. It provides a higher-level interface on top of the [@meeco/sd-jwt](https://github.com/Meeco/sd-jwt) library to create the compliant SD-JWT VCs.
 
 ## Installation
 
 ```bash
-npm install sd-jwt-vc
+npm install @meeco/sd-jwt-vc
 ```
 
 ## Usage
+
+The library exposes three classes
 
 ### Issuer
 
@@ -22,9 +27,9 @@ signer configuration callback function will be used to sign the SD JWTs and hash
 Here's an example:
 
 ```typescript
-import { DisclosureFrame, Hasher, SDJWTPayload, Signer, base64encode } from '@meeco/sd-jwt';
 import { createHash } from 'crypto';
 import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, exportJWK, generateKeyPair } from 'jose';
+import { DisclosureFrame, Hasher, SDJWTPayload, Signer, base64encode } from '@meeco/sd-jwt';
 import {
   CreateSDJWTPayload,
   HasherConfig,
@@ -85,7 +90,7 @@ async function main() {
   const holderPublicKey = await exportJWK(keyPair.publicKey);
 
   const payload: CreateSDJWTPayload = {
-    iat: Date.now(),
+    iat: Math.floor(Date.now() / 1000),
     cnf: {
       jwk: holderPublicKey,
     },
