@@ -5,28 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.0 - 2024-02-09
+
+### Changed
+
+- `Holder` class added with addition parameter to configure hasher
+- Key binding JWT includes `sd_hash` payload attribute
+
 ## 0.1.0 - 2024-02-05
+
+### Added
 
 - allow additional header input for the sd-jwt vc creation
 
 ## 0.0.9 - 2024-02-01
+
+### Fixed
 
 - update `sd-jwt` dependency
 - bugfix: ESM imports
 
 ## 0.0.8 - 2023-12-08
 
+### Added
+
 - Added validation that ensures JWT reserved claim keys are not present in both the claims and the disclosure frame.
 
 ## 0.0.7 - 2023-12-04
 
-### Updates
+### Changed
 
 - The `CreateSDJWTPayload` type now requires `vct` fields in the payload.
 - The optional `status` field has been moved from `VCClaims` to `CreateSDJWTPayload` type.
 - Demo scripts have been updated.
 
-### Removals
+### Removed
 
 - Removed the `VCClaimsWithVCDataModel` type, which was specific to the w3c data model, from the VCSDJWT creation process. This change allows for the creation of a VCSDJWT with any data model.
 

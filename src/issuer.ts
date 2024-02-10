@@ -35,7 +35,6 @@ export class Issuer {
     this.hasher = hasher;
   }
 
-  // write getter for signer and hasher
   get getSigner() {
     return this.signer;
   }

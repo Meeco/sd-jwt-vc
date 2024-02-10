@@ -103,13 +103,13 @@ describe('Issuer', () => {
   describe('Issuer', () => {
     describe('constructor', () => {
       it('should throw an error if signer callback is not provided', () => {
-        expect(() => new Issuer({ alg: supportedAlgorithm.ES256, callback: undefined }, undefined)).toThrowError(
+        expect(() => new Issuer({ alg: supportedAlgorithm.ES256, callback: undefined }, undefined)).toThrow(
           'Signer function is required',
         );
       });
 
       it('should throw an error if signer alg is not provided', () => {
-        expect(() => new Issuer({ alg: undefined, callback: () => Promise.resolve('') }, undefined)).toThrowError(
+        expect(() => new Issuer({ alg: undefined, callback: () => Promise.resolve('') }, undefined)).toThrow(
           'algo used for Signer function is required',
         );
       });
@@ -121,7 +121,7 @@ describe('Issuer', () => {
               { callback: () => Promise.resolve(''), alg: supportedAlgorithm.ES256 },
               { alg: 'SHA256', callback: undefined },
             ),
-        ).toThrowError('Hasher function is required');
+        ).toThrow('Hasher function is required');
       });
 
       it('should throw an error if hasher alg is not provided', () => {
@@ -131,7 +131,7 @@ describe('Issuer', () => {
               { callback: () => Promise.resolve(''), alg: supportedAlgorithm.ES256 },
               { callback: () => '', alg: undefined },
             ),
-        ).toThrowError('algo used for Hasher function is required');
+        ).toThrow('algo used for Hasher function is required');
       });
 
       it('should create an instance of Issuer if all required parameters are provided', () => {
@@ -154,7 +154,7 @@ describe('Issuer', () => {
         },
       };
 
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrowError(
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrow(
         'Issuer iss (issuer) is required and must be a valid URL',
       );
     });
@@ -168,7 +168,7 @@ describe('Issuer', () => {
         iss: 'invalid-url',
       };
 
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrowError(
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrow(
         'Issuer iss (issuer) is required and must be a valid URL',
       );
     });
@@ -181,7 +181,7 @@ describe('Issuer', () => {
         iss: 'https://valid.issuer.url',
       };
 
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrowError(
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrow(
         'Payload iat (Issued at - seconds since Unix epoch) is required and must be a number',
       );
     });
@@ -195,7 +195,7 @@ describe('Issuer', () => {
         iss: 'https://valid.issuer.url',
       };
 
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload as any)).toThrowError(
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload as any)).toThrow(
         'Payload iat (Issued at - seconds since Unix epoch) is required and must be a number',
       );
     });
@@ -206,7 +206,7 @@ describe('Issuer', () => {
         iss: 'https://valid.issuer.url',
       };
 
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrowError(
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrow(
         'Payload cnf is required and must be a JWK format',
       );
     });
@@ -218,7 +218,7 @@ describe('Issuer', () => {
         iss: 'https://valid.issuer.url',
       };
 
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload as any)).toThrowError(
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload as any)).toThrow(
         'Payload cnf is required and must be a JWK format',
       );
     });
@@ -232,7 +232,7 @@ describe('Issuer', () => {
         iss: 'https://valid.issuer.url',
       };
 
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload as any)).toThrowError(
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload as any)).toThrow(
         'Payload cnf.jwk must be valid JWK format',
       );
     });
@@ -250,7 +250,7 @@ describe('Issuer', () => {
         iss: 'https://valid.issuer.url',
       };
 
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrowError('Payload cnf.jwk must be valid JWK format');
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrow('Payload cnf.jwk must be valid JWK format');
     });
 
     it('should throw an error if vct is not a valid String', () => {
@@ -268,7 +268,7 @@ describe('Issuer', () => {
         vct: 123,
       };
 
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrowError('vct value MUST be a case-sensitive string');
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrow('vct value MUST be a case-sensitive string');
     });
 
     it('should throw an error if vct is not a valid url', () => {
@@ -286,7 +286,7 @@ describe('Issuer', () => {
         vct: 'httpinvalid-url',
       };
 
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrowError('vct value MUST be a valid URL');
+      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrow('vct value MUST be a valid URL');
     });
 
     it('should not throw an error if all properties are valid', () => {
@@ -312,9 +312,7 @@ describe('Issuer', () => {
     it('should throw an error if claims is missing', () => {
       const claims = undefined;
 
-      expect(() => issuer.validateVCClaims(claims as any)).toThrowError(
-        'Payload claims is required and must be an object',
-      );
+      expect(() => issuer.validateVCClaims(claims as any)).toThrow('Payload claims is required and must be an object');
     });
 
     it('should throw an error if claims is not an object', () => {

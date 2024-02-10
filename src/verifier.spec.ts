@@ -1,8 +1,8 @@
+import { Hasher } from '@meeco/sd-jwt';
 import { importJWK } from 'jose';
 import { hasherCallbackFn, kbVeriferCallbackFn, verifierCallbackFn } from './test-utils/helpers';
 import { defaultHashAlgorithm } from './util';
 import { Verifier } from './verifier';
-import { Hasher } from '@meeco/sd-jwt';
 
 describe('Verifier', () => {
   let verifier: Verifier;
@@ -110,7 +110,7 @@ describe('Verifier', () => {
           verifierCallbackFn(issuerPubKey),
           hasherCallbackFn(defaultHashAlgorithm),
         ),
-      ).rejects.toThrowError('Missing key binding verifier callback function');
+      ).rejects.toThrow('Missing key binding verifier callback function');
     });
 
     it('should throw an error if keybinding jwt do not have aud, nonce or iat', async () => {
@@ -139,7 +139,7 @@ describe('Verifier', () => {
           hasherCallbackFn(defaultHashAlgorithm),
           kbVeriferCallbackFn('https://valid.verifier.url', nonce, sdJwtHash),
         ),
-      ).rejects.toThrowError('Missing aud, nonce, iat or sd_hash in key binding JWT');
+      ).rejects.toThrow('Missing aud, nonce, iat or sd_hash in key binding JWT');
     });
   });
 });
