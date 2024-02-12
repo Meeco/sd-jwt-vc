@@ -1,6 +1,7 @@
 import { generateKeyPair } from 'jose';
 
 import { DisclosureFrame, decodeDisclosure, decodeJWT } from '@meeco/sd-jwt';
+import { SDJWTVCError } from './errors';
 import { Issuer } from './issuer';
 import { hasherCallbackFn, signerCallbackFn } from './test-utils/helpers';
 import {
@@ -121,7 +122,7 @@ describe('Issuer', () => {
               { callback: () => Promise.resolve(''), alg: supportedAlgorithm.ES256 },
               { alg: 'SHA256', callback: undefined },
             ),
-        ).toThrowError('Hasher function is required');
+        ).toThrowSDJWTVCError(new SDJWTVCError('hasher_callback_function_is_required'));
       });
 
       it('should throw an error if hasher alg is not provided', () => {
@@ -131,7 +132,7 @@ describe('Issuer', () => {
               { callback: () => Promise.resolve(''), alg: supportedAlgorithm.ES256 },
               { callback: () => '', alg: undefined },
             ),
-        ).toThrowError('algo used for Hasher function is required');
+        ).toThrowSDJWTVCError(new SDJWTVCError('hasher_algorithm_is_required'));
       });
 
       it('should create an instance of Issuer if all required parameters are provided', () => {
@@ -196,7 +197,7 @@ describe('Issuer', () => {
       };
 
       expect(() => issuer.validateSDJWTPayload(sdJWTPayload as any)).toThrowError(
-        'Payload iat (Issued At - seconds since Unix epoch) is required and must be a number',
+        'Payload iat (Issued at - seconds since Unix epoch) is required and must be a number',
       );
     });
 

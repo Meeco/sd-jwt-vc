@@ -1,4 +1,4 @@
-import { DisclosureFrame, Hasher, Signer, base64encode } from '@meeco/sd-jwt';
+import { DisclosureFrame, Hasher, Signer, base64encode, decodeSDJWT } from '@meeco/sd-jwt';
 import { createHash } from 'crypto';
 import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK } from 'jose';
 import {
@@ -90,6 +90,8 @@ async function main() {
   };
 
   const result = await issuer.createVCSDJWT(vcClaims, payload, sdVCClaimsDisclosureFrame);
+  const sdjwtvc = decodeSDJWT(result);
+  console.log(sdjwtvc.disclosures);
   console.log(result);
 }
 

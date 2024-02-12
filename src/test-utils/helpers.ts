@@ -21,18 +21,18 @@ export function kbVeriferCallbackFn(
 
     if (expectedAud || expectedNonce || expectedSdHash) {
       if (payload.aud !== expectedAud) {
-        throw new SDJWTVCError('aud mismatch');
+        throw new SDJWTVCError('aud_mismatch');
       }
       if (payload.nonce !== expectedNonce) {
-        throw new SDJWTVCError('nonce mismatch');
+        throw new SDJWTVCError('nonce_mismatch');
       }
       if (payload.sd_hash !== expectedSdHash) {
-        throw new SDJWTVCError('sd_hash mismatch');
+        throw new SDJWTVCError('sd_hash_mismatch');
       }
     }
 
     if (!Object.values(supportedAlgorithm).includes(header.alg as supportedAlgorithm)) {
-      throw new SDJWTVCError('unsupported algorithm');
+      throw new SDJWTVCError('unsupported_algorithm');
     }
 
     const holderKey = await importJWK(holderJWK, header.alg);
@@ -46,7 +46,7 @@ export function keyBindingVerifierCallbackFn(): KeyBindingVerifier {
     const { header } = decodeJWT(kbjwt);
 
     if (!Object.values(supportedAlgorithm).includes(header.alg as supportedAlgorithm)) {
-      throw new SDJWTVCError('unsupported algorithm');
+      throw new SDJWTVCError('unsupported_algorithm');
     }
 
     const holderKey = await importJWK(holderJWK, header.alg);

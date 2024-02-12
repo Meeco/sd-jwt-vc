@@ -1,5 +1,5 @@
 import { DisclosureFrame, JWTHeaderParameters, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
-import { SDJWTVCError, SDJWTVCErrorCode } from './errors.js';
+import { SDJWTVCError } from './errors.js';
 import {
   CreateSDJWTPayload,
   CreateSignedJWTOpts,
@@ -17,18 +17,26 @@ export class Issuer {
   private signer: SignerConfig;
 
   constructor(signer: SignerConfig, hasher: HasherConfig) {
-    this.validateConfig(signer, 'Signer');
-    this.validateConfig(hasher, 'Hasher');
+    this.validateSignerConfig(signer);
+    this.validateHahserConfig(hasher);
     this.signer = signer;
     this.hasher = hasher;
   }
-
-  private validateConfig(config: SignerConfig | HasherConfig, configName: string) {
+  private validateSignerConfig(config: SignerConfig | HasherConfig) {
     if (!config.callback || typeof config.callback !== 'function') {
-      throw new SDJWTVCError(`${configName} callback function is required`, SDJWTVCErrorCode.InvalidCallback);
+      throw new SDJWTVCError('signer_callback_function_is_required');
     }
     if (!config.alg || typeof config.alg !== 'string') {
-      throw new SDJWTVCError(`${configName} algorithm is required`, SDJWTVCErrorCode.InvalidAlgorithm);
+      throw new SDJWTVCError('signer_algorithm_is_required');
+    }
+  }
+
+  private validateHahserConfig(config: SignerConfig | HasherConfig) {
+    if (!config.callback || typeof config.callback !== 'function') {
+      throw new SDJWTVCError('hasher_callback_function_is_required');
+    }
+    if (!config.alg || typeof config.alg !== 'string') {
+      throw new SDJWTVCError('hasher_algorithm_is_required');
     }
   }
 
@@ -66,8 +74,8 @@ export class Issuer {
    */
   async createSignedVCSDJWT(opts: CreateSignedJWTOpts): Promise<JWT> {
     const { vcClaims, sdJWTPayload, sdVCClaimsDisclosureFrame = {}, saltGenerator, sdJWTHeader } = opts;
-    if (!vcClaims) throw new SDJWTVCError('vcClaims is required');
-    if (!sdJWTPayload) throw new SDJWTVCError('sdJWTPayload is required');
+    if (!vcClaims) throw new SDJWTVCError('vcClaims_is_required');
+    if (!sdJWTPayload) throw new SDJWTVCError('sdJWTPayload_is_required');
 
     this.validateVCClaims(vcClaims as VCClaims);
     this.validateSDJWTPayload(sdJWTPayload);
@@ -95,7 +103,7 @@ export class Issuer {
 
       return jwt;
     } catch (error: any) {
-      throw new SDJWTVCError(`Failed to create VCSDJWT: ${error.message}`);
+      throw new SDJWTVCError('failed_to_create_VCSDJWT', { reason: error.message });
     }
   }
 
@@ -105,20 +113,20 @@ export class Issuer {
    */
   validateSDJWTPayload(sdJWTPayload: SDJWTPayload) {
     if (!sdJWTPayload.iss || !isValidUrl(sdJWTPayload.iss)) {
-      throw new SDJWTVCError('Issuer iss (issuer) is required and must be a valid URL');
+      throw new SDJWTVCError('invalid_issuer_url');
     }
     if (!sdJWTPayload.iat || typeof sdJWTPayload.iat !== 'number') {
-      throw new SDJWTVCError('Payload iat (Issued at - seconds since Unix epoch) is required and must be a number');
+      throw new SDJWTVCError('invalid_issued_at');
     }
     if (!sdJWTPayload.cnf || typeof sdJWTPayload.cnf !== 'object' || !sdJWTPayload.cnf.jwk) {
-      throw new SDJWTVCError('Payload cnf is required and must be a JWK format');
+      throw new SDJWTVCError('invalid_cnf');
     }
     if (typeof sdJWTPayload.cnf.jwk !== 'object' || typeof sdJWTPayload.cnf.jwk.kty !== 'string') {
-      throw new SDJWTVCError('Payload cnf.jwk must be valid JWK format');
+      throw new SDJWTVCError('invalid_cnf_jwk');
     }
 
     if (!sdJWTPayload.vct || typeof sdJWTPayload.vct !== 'string') {
-      throw new SDJWTVCError('vct value MUST be a case-sensitive string');
+      throw new SDJWTVCError('invalid_vct_string');
     }
 
     const prefixes = ['http', 'https', 'https://', 'http://'];
@@ -126,7 +134,7 @@ export class Issuer {
       prefixes.some((prefix) => (sdJWTPayload.vct as string).startsWith(prefix)) &&
       !isValidUrl(sdJWTPayload.vct as any)
     ) {
-      throw new SDJWTVCError('vct value MUST be a valid URL');
+      throw new SDJWTVCError('invalid_vct_url');
     }
   }
 
@@ -136,12 +144,12 @@ export class Issuer {
    */
   validateVCClaims(claims: VCClaims) {
     if (!claims || typeof claims !== 'object') {
-      throw new SDJWTVCError('Payload claims is required and must be an object');
+      throw new SDJWTVCError('invalid_claims_object');
     }
 
     for (const key of ReservedJWTClaimKeys) {
       if (key in claims) {
-        throw new SDJWTVCError(`Claim contains reserved JWTPayload key: ${key}`);
+        throw new SDJWTVCError('reserved_jwt_payload_key_in_claims', { reason: key });
       }
     }
   }
@@ -154,7 +162,7 @@ export class Issuer {
     if (sdVCClaimsDisclosureFrame?._sd && Array.isArray(sdVCClaimsDisclosureFrame._sd)) {
       for (const key of sdVCClaimsDisclosureFrame._sd) {
         if (ReservedJWTClaimKeys.includes(key as any)) {
-          throw new SDJWTVCError(`Disclosure frame contains reserved JWTPayload key: ${key}`);
+          throw new SDJWTVCError('reserved_jwt_payload_key_in_disclosure_frame', { reason: key });
         }
       }
     }

@@ -47,7 +47,7 @@ describe('getIssuerPublicKeyFromIss', () => {
             }),
         });
       } else {
-        throw new SDJWTVCError(`Unexpected URL: ${url}`);
+        throw new SDJWTVCError('unexpected_url');
       }
     });
 
@@ -86,7 +86,7 @@ describe('getIssuerPublicKeyFromIss', () => {
             }),
         });
       } else {
-        throw new SDJWTVCError(`Unexpected URL: ${url}`);
+        throw new SDJWTVCError('unexpected_url');
       }
     });
 
@@ -194,7 +194,7 @@ describe('getIssuerPublicKeyFromIss', () => {
       json: () =>
         Promise.resolve({
           status: 404,
-          json: () => Promise.reject(new SDJWTVCError('Issuer response not found')),
+          json: () => Promise.reject(new SDJWTVCError('issuer_response_not_found')),
         }),
     });
 

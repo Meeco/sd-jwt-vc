@@ -30,14 +30,14 @@ export class Verifier {
     const { keyBindingJWT } = decodeSDJWT(sdJWT);
     if (keyBindingJWT) {
       if (!kbVeriferCallbackFn) {
-        throw new SDJWTVCError('Missing key binding verifier callback function');
+        throw new SDJWTVCError('missing_key_binding_verifier_callback_function');
       }
 
       const decodedKeyBindingJWT = decodeJWT(keyBindingJWT);
       const { payload } = decodedKeyBindingJWT;
       const { aud, nonce, iat, sd_hash } = payload;
       if (!aud || !nonce || !iat || !sd_hash) {
-        throw new SDJWTVCError('Missing aud, nonce, iat or sd_hash in key binding JWT');
+        throw new SDJWTVCError('missing_aud_nonce_iat_or_sd_hash_in_key_binding_JWT');
       }
     }
 

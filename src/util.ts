@@ -41,7 +41,7 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
   const wellKnownPath = `.well-known/jwt-issuer/${issuerPath}`;
 
   if (!jwt.payload.iss || !isValidUrl(jwt.payload.iss)) {
-    throw new SDJWTVCError('Invalid issuer well-known URL');
+    throw new SDJWTVCError('invalid_issuer_well_known_url');
   }
 
   const url = new URL(jwt.payload.iss);
@@ -53,14 +53,14 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
     const response = await fetch(issuerUrl);
     responseJson = await response.json();
   } catch (error) {
-    throw new SDJWTVCError(`Failed to fetch or parse the response from ${issuerUrl} as JSON. Error: ${error.message}`);
+    throw new SDJWTVCError('failed_to_fetch_or_parse_response', { reason: `${error.message}` });
   }
 
   if (!responseJson) {
-    throw new SDJWTVCError('Issuer response not found');
+    throw new SDJWTVCError('issuer_response_not_found');
   }
   if (!responseJson.issuer || responseJson.issuer !== jwt.payload.iss) {
-    throw new SDJWTVCError("The response from the issuer's well-known URI does not match the expected issuer");
+    throw new SDJWTVCError('issuer_response_from_wellknown_do_not_match_the_expected_issuer');
   }
 
   let issuerPublicKeyJWK: JWK | undefined;
@@ -74,7 +74,7 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
   }
 
   if (!issuerPublicKeyJWK) {
-    throw new SDJWTVCError('Issuer public key JWK not found');
+    throw new SDJWTVCError('issuer_public_key_jwk_not_found');
   }
 
   return issuerPublicKeyJWK;
@@ -89,7 +89,7 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
  */
 export function getIssuerPublicKeyJWK(jwks: any, kid?: string): JWK | undefined {
   if (!jwks || !jwks.keys) {
-    throw new SDJWTVCError('Issuer response does not contain jwks or jwks_uri');
+    throw new SDJWTVCError('issuer_response_does_not_contain_jwks_or_jwks_uri');
   }
 
   if (kid) {

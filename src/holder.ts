@@ -1,8 +1,8 @@
 import { Disclosure, Hasher, JWK, KeyBindingVerifier, base64encode, decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
+import { hasherCallbackFn } from './test-utils/helpers.js';
 import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR, SignerConfig } from './types.js';
 import { defaultHashAlgorithm, isValidUrl } from './util.js';
-import { hasherCallbackFn } from './test-utils/helpers.js';
 
 export class Holder {
   private signer: SignerConfig;
@@ -14,10 +14,10 @@ export class Holder {
    */
   constructor(signer: SignerConfig) {
     if (!signer?.callback || typeof signer?.callback !== 'function') {
-      throw new SDJWTVCError('Signer function is required');
+      throw new SDJWTVCError('signer_function_is_required');
     }
     if (!signer?.alg || typeof signer?.alg !== 'string') {
-      throw new SDJWTVCError('algo used for Signer function is required');
+      throw new SDJWTVCError('algo_used_for_Signer_function_is_required');
     }
 
     this.signer = signer;
@@ -62,7 +62,7 @@ export class Holder {
 
       return { keyBindingJWT: jwt, nonce };
     } catch (error: any) {
-      throw new SDJWTVCError(`Failed to get Key Binding JWT: ${error.message}`);
+      throw new SDJWTVCError('failed_to_get_Key_Binding_JWT', { reason: error.message });
     }
   }
 
@@ -83,11 +83,11 @@ export class Holder {
     options?: { nonce?: string; audience?: string; keyBindingVerifyCallbackFn?: KeyBindingVerifier },
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce?: string }> {
     if (options.audience && (typeof options.audience !== 'string' || !isValidUrl(options.audience))) {
-      throw new SDJWTVCError('Invalid audience parameter');
+      throw new SDJWTVCError('invalid_audience_parameter');
     }
 
     if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
-      throw new SDJWTVCError('Invalid sdJWT parameter');
+      throw new SDJWTVCError('invalid_sdJWT_parameter');
     }
 
     const [sdJWTPayload, _] = sdJWT.split(SD_JWT_FORMAT_SEPARATOR);
@@ -96,7 +96,7 @@ export class Holder {
     const { jwk: holderPublicKeyJWK } = (jwt.payload as CreateSDJWTPayload).cnf || {};
 
     if (!holderPublicKeyJWK) {
-      throw new SDJWTVCError('No holder public key in SD-JWT');
+      throw new SDJWTVCError('no_holder_public_key_in_SD_JWT');
     }
 
     let sdHashAlgorithm = jwt.payload['_sd_alg'] as string;
@@ -130,7 +130,7 @@ export class Holder {
    */
   revealDisclosures(sdJWT: JWT, disclosedList: Disclosure[]): JWT {
     if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
-      throw new SDJWTVCError('No disclosures in SD-JWT');
+      throw new SDJWTVCError('no_disclosures_in_SD_JWT');
     }
 
     const { disclosures } = decodeSDJWT(sdJWT);
@@ -174,7 +174,7 @@ export class Holder {
     try {
       await keyBindingVerifierCallbackFn(keyBindingJWT, holderPublicKeyJWK);
     } catch (e) {
-      throw new SDJWTVCError('Failed to verify key binding JWT: SD JWT holder public key does not match private key');
+      throw new SDJWTVCError('failed_to_verify_key_binding_JWT');
     }
   }
 }
