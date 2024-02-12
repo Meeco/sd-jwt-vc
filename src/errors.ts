@@ -49,6 +49,10 @@ export class SDJWTVCError extends Error {
 }
 export type ErrorType = keyof typeof ERROR_REGISTRY;
 
+/**
+ * TODO: update error messages and codes
+ */
+
 const ERROR_REGISTRY = {
   hasher_callback_function_is_required: {
     message: 'Hasher callback function is required',
