@@ -11,7 +11,7 @@ describe('getIssuerPublicKeyFromIss', () => {
   const url = new URL(jwt.payload.iss);
 
   const baseUrl = `${url.protocol}//${url.host}`;
-  const jwtIssuerWellKnownUrl = `${baseUrl}//.well-known/jwt-vc-issuer/${issuerPath}`;
+  const jwtIssuerWellKnownUrl = `${baseUrl}/.well-known/jwt-vc-issuer/${issuerPath}`;
   const issuerUrl = `${baseUrl}/${issuerPath}`;
   const jwksUri = `${issuerUrl}/my_public_keys.jwks`;
 
@@ -210,12 +210,12 @@ describe('getIssuerPublicKeyFromIss', () => {
     (global as any).fetch = jest.fn().mockResolvedValueOnce({
       invalid: () =>
         Promise.resolve(
-          'Failed to fetch or parse the response from https://valid.issuer.url//.well-known/jwt-vc-issuer/user/1234 as JSON. Error: response.json is not a function',
+          'Failed to fetch or parse the response from https://valid.issuer.url/.well-known/jwt-vc-issuer/user/1234 as JSON. Error: response.json is not a function',
         ),
     });
 
     await expect(getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
-      'Failed to fetch or parse the response from https://valid.issuer.url//.well-known/jwt-vc-issuer/user/1234 as JSON. Error: response.json is not a function',
+      'Failed to fetch or parse the response from https://valid.issuer.url/.well-known/jwt-vc-issuer/user/1234 as JSON. Error: response.json is not a function',
     );
 
     expect(fetch).toHaveBeenCalledTimes(1);

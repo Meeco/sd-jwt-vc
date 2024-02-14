@@ -38,7 +38,7 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
   const s = sdJwtVC.split(SD_JWT_FORMAT_SEPARATOR);
   const jwt = decodeJWT(s.shift() || '');
 
-  const wellKnownPath = `/.well-known/jwt-vc-issuer/${issuerPath}`;
+  const wellKnownPath = `.well-known/jwt-vc-issuer/${issuerPath}`;
 
   if (!jwt.payload.iss || !isValidUrl(jwt.payload.iss)) {
     throw new SDJWTVCError('Invalid issuer well-known URL');
