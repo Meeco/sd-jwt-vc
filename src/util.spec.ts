@@ -27,6 +27,7 @@ describe('getIssuerPublicKeyFromIss', () => {
     (global as any).fetch = jest.fn().mockImplementation((url: string) => {
       if (url === jwtIssuerWellKnownUrl) {
         return Promise.resolve({
+          ok: true,
           json: () =>
             Promise.resolve({
               issuer: jwt.payload.iss,
@@ -35,6 +36,7 @@ describe('getIssuerPublicKeyFromIss', () => {
         });
       } else if (url === jwksUri) {
         return Promise.resolve({
+          ok: true,
           json: () =>
             Promise.resolve({
               keys: [
@@ -71,6 +73,7 @@ describe('getIssuerPublicKeyFromIss', () => {
     (global as any).fetch = jest.fn().mockImplementation((url: string) => {
       if (url === jwtIssuerWellKnownUrl) {
         return Promise.resolve({
+          ok: true,
           json: () =>
             Promise.resolve({
               issuer: jwt.payload.iss,
@@ -108,17 +111,15 @@ describe('getIssuerPublicKeyFromIss', () => {
 
     (global as any).fetch = jest.fn().mockImplementation((url: string) => {
       if (url === jwtIssuerWellKnownUrl) {
-        return Promise.reject({
-          json: () =>
-            Promise.resolve({
-              status: 404,
-              json: () => Promise.reject(new SDJWTVCError('Issuer response not found')),
-            }),
+        return Promise.resolve({
+          ok: false,
+          json: () => Promise.reject(new SDJWTVCError('Issuer response not found')),
         });
       }
 
       if (url === jwtIssuerWellKnownFallbackUrl) {
         return Promise.resolve({
+          ok: true,
           json: () =>
             Promise.resolve({
               issuer: jwt.payload.iss,
@@ -149,6 +150,7 @@ describe('getIssuerPublicKeyFromIss', () => {
 
   it('should throw an error if issuer response is not found', async () => {
     (global as any).fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
       json: () => Promise.resolve(null),
     });
 
@@ -160,6 +162,7 @@ describe('getIssuerPublicKeyFromIss', () => {
 
   it('should throw an error if issuer response does not contain the correct issuer', async () => {
     (global as any).fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
       json: () =>
         Promise.resolve({
           issuer: 'wrong-issuer',
@@ -176,6 +179,7 @@ describe('getIssuerPublicKeyFromIss', () => {
 
   it('should throw an error if issuer public key JWK is not found', async () => {
     (global as any).fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
       json: () =>
         Promise.resolve({
           issuer: jwt.payload.iss,
@@ -195,6 +199,7 @@ describe('getIssuerPublicKeyFromIss', () => {
 
   it('should throw an error if issuer response does not contain jwks or jwks_uri', async () => {
     (global as any).fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
       json: () =>
         Promise.resolve({
           issuer: jwt.payload.iss,
@@ -211,6 +216,7 @@ describe('getIssuerPublicKeyFromIss', () => {
 
   it('should throw an error if jwks_uri response does not contain the correct issuer', async () => {
     (global as any).fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
       json: () =>
         Promise.resolve({
           issuer: 'wrong-issuer',
@@ -228,6 +234,7 @@ describe('getIssuerPublicKeyFromIss', () => {
 
   it('should throw an error if well-known returns empty response', async () => {
     (global as any).fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
       json: () => Promise.resolve({}),
     });
 
@@ -241,6 +248,7 @@ describe('getIssuerPublicKeyFromIss', () => {
 
   it('throws error if issuer from well-known file does not match one inside the sd-jwt', async () => {
     (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: () =>
         Promise.resolve({
           issuer: 'http://some.other/issuer',
@@ -268,11 +276,17 @@ describe('getIssuerPublicKeyFromIss', () => {
   it('should throw an error if well-known calls return errors', async () => {
     (global as any).fetch = jest
       .fn()
-      .mockRejectedValueOnce(new Error('internal server error 1'))
-      .mockRejectedValueOnce(new Error('internal server error 2'));
+      .mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve({ message: 'not found' }),
+      })
+      .mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve({ message: 'internal server error' }),
+      });
 
     await expect(getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
-      'Failed to fetch and parse the response from https://valid.issuer.url/.well-known/jwt-vc-issuer/user/1234 as JSON. Error: internal server error 1. Fallback fetch and parse the response from https://valid.issuer.url/.well-known/jwt-issuer/user/1234 failed as well. Error: internal server error 2.',
+      'Failed to fetch and parse the response from https://valid.issuer.url/.well-known/jwt-vc-issuer/user/1234 as JSON. Error: {"message":"internal server error"}. Fallback fetch and parse the response from https://valid.issuer.url/.well-known/jwt-issuer/user/1234 failed as well. Error: {"message":"internal server error"}.',
     );
 
     expect(fetch).toHaveBeenCalledTimes(2);

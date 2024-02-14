@@ -47,7 +47,15 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
   const issuerUrl = `${baseUrl}/.well-known/jwt-vc-issuer/${issuerPath}`;
 
   const [responseJson, error] = await fetch(issuerUrl)
-    .then(async (response) => [await response.json(), null])
+    .then(async (response) => {
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(JSON.stringify(body));
+      }
+
+      return [body, null];
+    })
     .catch(async (err) => {
       /**
        * @deprecated
@@ -62,7 +70,15 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
       );
 
       return fetch(issuerFallbackUrl)
-        .then(async (response) => [await response.json(), null])
+        .then(async (response) => {
+          const body = await response.json();
+
+          if (!response.ok) {
+            throw new Error(JSON.stringify(body));
+          }
+
+          return [body, null];
+        })
         .catch((fallbackErr) => {
           return [
             null,
