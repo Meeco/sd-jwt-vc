@@ -60,7 +60,7 @@ async function main() {
   };
 
   const payload: CreateSDJWTPayload = {
-    iat: Date.now(),
+    iat: Math.floor(Date.now() / 1000),
     cnf: {
       jwk: holderPublicKey,
     },
