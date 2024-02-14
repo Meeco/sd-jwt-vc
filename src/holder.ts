@@ -70,7 +70,7 @@ export class Holder {
         aud: audience,
         nonce,
         sd_hash: sdHash,
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
       };
 
       const signature: string = await this.signer.callback(protectedHeader, presentSDJWTPayload);
