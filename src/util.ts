@@ -30,7 +30,7 @@ export function isValidUrl(url: string): boolean {
 /**
  * Get the issuer public key from the issuer.
  * @param sdJwtVC The SD-JWT to verify.
- * @param issuerPath The issuer path postfix to .well-known/jwt-issuer/{issuerPath}, to get the issuer public key. e.g. 'jwt-issuer/user/1234'
+ * @param issuerPath The issuer path postfix to /.well-known/jwt-vc-issuer/{issuerPath}, to get the issuer public key. e.g. 'jwt-issuer/user/1234'
  * @throws An error if the issuer public key cannot be fetched.
  * @returns The issuer public key.
  */
@@ -38,7 +38,7 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
   const s = sdJwtVC.split(SD_JWT_FORMAT_SEPARATOR);
   const jwt = decodeJWT(s.shift() || '');
 
-  const wellKnownPath = `.well-known/jwt-issuer/${issuerPath}`;
+  const wellKnownPath = `/.well-known/jwt-vc-issuer/${issuerPath}`;
 
   if (!jwt.payload.iss || !isValidUrl(jwt.payload.iss)) {
     throw new SDJWTVCError('Invalid issuer well-known URL');
