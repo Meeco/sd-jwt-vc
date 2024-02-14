@@ -12,6 +12,7 @@ describe('getIssuerPublicKeyFromIss', () => {
 
   const baseUrl = `${url.protocol}//${url.host}`;
   const jwtIssuerWellKnownUrl = `${baseUrl}/.well-known/jwt-vc-issuer/${issuerPath}`;
+  const jwtIssuerWellKnownFallbackUrl = `${baseUrl}/.well-known/jwt-issuer/${issuerPath}`;
   const issuerUrl = `${baseUrl}/${issuerPath}`;
   const jwksUri = `${issuerUrl}/my_public_keys.jwks`;
 
@@ -97,6 +98,55 @@ describe('getIssuerPublicKeyFromIss', () => {
     expect(result).toEqual(expectedJWK);
   });
 
+  it('should get issuer public keys from a fallback endpoint', async () => {
+    const expectedJWK: JWK = {
+      kty: 'RSA',
+      kid: 'test-key',
+      n: 'test-n',
+      e: 'AQAB',
+    };
+
+    (global as any).fetch = jest.fn().mockImplementation((url: string) => {
+      if (url === jwtIssuerWellKnownUrl) {
+        return Promise.reject({
+          json: () =>
+            Promise.resolve({
+              status: 404,
+              json: () => Promise.reject(new SDJWTVCError('Issuer response not found')),
+            }),
+        });
+      }
+
+      if (url === jwtIssuerWellKnownFallbackUrl) {
+        return Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              issuer: jwt.payload.iss,
+              jwks: {
+                keys: [
+                  {
+                    kty: 'RSA',
+                    kid: 'test-key',
+                    n: 'test-n',
+                    e: 'AQAB',
+                  },
+                ],
+              },
+            }),
+        });
+      }
+
+      throw new SDJWTVCError(`Unexpected URL: ${url}`);
+    });
+
+    const result = await getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath);
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledWith(jwtIssuerWellKnownUrl);
+    expect(fetch).toHaveBeenCalledWith(jwtIssuerWellKnownFallbackUrl);
+    expect(result).toEqual(expectedJWK);
+  });
+
   it('should throw an error if issuer response is not found', async () => {
     (global as any).fetch = jest.fn().mockResolvedValueOnce({
       json: () => Promise.resolve(null),
@@ -176,7 +226,7 @@ describe('getIssuerPublicKeyFromIss', () => {
     expect(fetch).toHaveBeenCalledWith(jwtIssuerWellKnownUrl);
   });
 
-  it('should throw an error if well-known retrun empty response', async () => {
+  it('should throw an error if well-known returns empty response', async () => {
     (global as any).fetch = jest.fn().mockResolvedValueOnce({
       json: () => Promise.resolve({}),
     });
@@ -189,12 +239,21 @@ describe('getIssuerPublicKeyFromIss', () => {
     expect(fetch).toHaveBeenCalledWith(jwtIssuerWellKnownUrl);
   });
 
-  it('should throw an error if well-known retrun 404', async () => {
-    (global as any).fetch = jest.fn().mockResolvedValueOnce({
+  it('throws error if issuer from well-known file does not match one inside the sd-jwt', async () => {
+    (global as any).fetch = jest.fn().mockResolvedValue({
       json: () =>
         Promise.resolve({
-          status: 404,
-          json: () => Promise.reject(new SDJWTVCError('Issuer response not found')),
+          issuer: 'http://some.other/issuer',
+          jwks: {
+            keys: [
+              {
+                kty: 'RSA',
+                kid: 'test-key',
+                n: 'test-n',
+                e: 'AQAB',
+              },
+            ],
+          },
         }),
     });
 
@@ -206,19 +265,18 @@ describe('getIssuerPublicKeyFromIss', () => {
     expect(fetch).toHaveBeenCalledWith(jwtIssuerWellKnownUrl);
   });
 
-  it('should throw an error if well-known retrun invalid response', async () => {
-    (global as any).fetch = jest.fn().mockResolvedValueOnce({
-      invalid: () =>
-        Promise.resolve(
-          'Failed to fetch or parse the response from https://valid.issuer.url/.well-known/jwt-vc-issuer/user/1234 as JSON. Error: response.json is not a function',
-        ),
-    });
+  it('should throw an error if well-known calls return errors', async () => {
+    (global as any).fetch = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('internal server error 1'))
+      .mockRejectedValueOnce(new Error('internal server error 2'));
 
     await expect(getIssuerPublicKeyFromWellKnownURI(sdJwtVC, issuerPath)).rejects.toThrow(
-      'Failed to fetch or parse the response from https://valid.issuer.url/.well-known/jwt-vc-issuer/user/1234 as JSON. Error: response.json is not a function',
+      'Failed to fetch and parse the response from https://valid.issuer.url/.well-known/jwt-vc-issuer/user/1234 as JSON. Error: internal server error 1. Fallback fetch and parse the response from https://valid.issuer.url/.well-known/jwt-issuer/user/1234 failed as well. Error: internal server error 2.',
     );
 
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
     expect(fetch).toHaveBeenCalledWith(jwtIssuerWellKnownUrl);
+    expect(fetch).toHaveBeenCalledWith(jwtIssuerWellKnownFallbackUrl);
   });
 });

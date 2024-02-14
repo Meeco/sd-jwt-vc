@@ -38,24 +38,44 @@ export async function getIssuerPublicKeyFromWellKnownURI(sdJwtVC: JWT, issuerPat
   const s = sdJwtVC.split(SD_JWT_FORMAT_SEPARATOR);
   const jwt = decodeJWT(s.shift() || '');
 
-  const wellKnownPath = `.well-known/jwt-vc-issuer/${issuerPath}`;
-
   if (!jwt.payload.iss || !isValidUrl(jwt.payload.iss)) {
     throw new SDJWTVCError('Invalid issuer well-known URL');
   }
 
   const url = new URL(jwt.payload.iss);
   const baseUrl = `${url.protocol}//${url.host}`;
-  const issuerUrl = `${baseUrl}/${wellKnownPath}`;
+  const issuerUrl = `${baseUrl}/.well-known/jwt-vc-issuer/${issuerPath}`;
 
-  let responseJson: any;
-  try {
-    const response = await fetch(issuerUrl);
-    responseJson = await response.json();
-  } catch (error) {
-    throw new SDJWTVCError(`Failed to fetch or parse the response from ${issuerUrl} as JSON. Error: ${error.message}`);
+  const [responseJson, error] = await fetch(issuerUrl)
+    .then(async (response) => [await response.json(), null])
+    .catch(async (err) => {
+      /**
+       * @deprecated
+       * In favor of: https://drafts.oauth.net/oauth-sd-jwt-vc/draft-ietf-oauth-sd-jwt-vc.html#name-jwt-vc-issuer-metadata
+       * To stay compatible with the old spec, check on the /.well-known/jwt-issuer/ endpoint is still being done if /.well-known/jwt-vc-issuer/ returned an error.
+       * No one should rely on this functionality, it will be removed at some point later.
+       */
+      const issuerFallbackUrl = `${baseUrl}/.well-known/jwt-issuer/${issuerPath}`;
+
+      console.warn(
+        `GET request to ${issuerUrl} has failed. Falling back to ${issuerFallbackUrl}. Fallback URL is here to support older version of the specification. You should not rely on this functionality being here. It will be removed at some point in the future.`,
+      );
+
+      return fetch(issuerFallbackUrl)
+        .then(async (response) => [await response.json(), null])
+        .catch((fallbackErr) => {
+          return [
+            null,
+            new SDJWTVCError(
+              `Failed to fetch and parse the response from ${issuerUrl} as JSON. Error: ${err.message}. Fallback fetch and parse the response from ${issuerFallbackUrl} failed as well. Error: ${fallbackErr.message}.`,
+            ),
+          ];
+        });
+    });
+
+  if (error) {
+    throw error;
   }
-
   if (!responseJson) {
     throw new SDJWTVCError('Issuer response not found');
   }
