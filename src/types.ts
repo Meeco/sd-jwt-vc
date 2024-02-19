@@ -3,6 +3,8 @@ import { supportedAlgorithm } from './util.js';
 
 export const SD_JWT_FORMAT_SEPARATOR = '~';
 
+export const SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
+
 export type JWT = string;
 
 export interface Cnf {

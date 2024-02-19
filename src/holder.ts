@@ -3,20 +3,28 @@ import {
   GetHasher,
   Hasher,
   JWK,
+  JWTHeaderParameters,
   KeyBindingVerifier,
   base64encode,
   decodeJWT,
   decodeSDJWT,
 } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
-import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR, SignerConfig } from './types.js';
+import {
+  CreateSDJWTPayload,
+  JWT,
+  PresentSDJWTPayload,
+  SD_JWT_FORMAT_SEPARATOR,
+  SD_KEY_BINDING_JWT_TYP,
+  SignerConfig,
+} from './types.js';
 import { defaultHashAlgorithm, isValidUrl } from './util.js';
 
 export class Holder {
   private signer: SignerConfig;
   private hasherFnResolver: GetHasher;
 
-  public static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
+  public static SD_KEY_BINDING_JWT_TYP = SD_KEY_BINDING_JWT_TYP;
 
   /**
    * Signer Config with callback function used for signing key binding JWT.
@@ -59,10 +67,12 @@ export class Holder {
     audience: string,
     nonce: string,
     sdHash: string,
+    header?: Omit<JWTHeaderParameters, 'typ' | 'alg'>,
   ): Promise<{ keyBindingJWT: JWT; nonce?: string }> {
     try {
       const protectedHeader = {
-        typ: Holder.SD_KEY_BINDING_JWT_TYP,
+        ...header,
+        typ: SD_KEY_BINDING_JWT_TYP,
         alg: this.signer.alg,
       };
 
@@ -101,7 +111,12 @@ export class Holder {
   async presentVCSDJWT(
     sdJWT: JWT,
     disclosedList: Disclosure[],
-    options?: { nonce?: string; audience?: string; keyBindingVerifyCallbackFn?: KeyBindingVerifier },
+    options?: {
+      nonce?: string;
+      audience?: string;
+      keyBindingVerifyCallbackFn?: KeyBindingVerifier;
+      kbJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>;
+    },
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce?: string }> {
     if (options.audience && (typeof options.audience !== 'string' || !isValidUrl(options.audience))) {
       throw new SDJWTVCError('Invalid audience parameter');
@@ -123,28 +138,33 @@ export class Holder {
     const shHashingAlgorithm = (jwt.payload['_sd_alg'] as string) || defaultHashAlgorithm;
     const hasher: Hasher = await this.getHasher(shHashingAlgorithm);
 
-    const vcSDJWTWithRevealedDisclosures = this.revealDisclosures(sdJWT, disclosedList);
-    const sdJwtHash: string = hasher(vcSDJWTWithRevealedDisclosures);
+    const vcSDJWTWithSelectedDisclosures = this.selectDisclosures(sdJWT, disclosedList);
+    const sdJwtHash: string = hasher(vcSDJWTWithSelectedDisclosures);
 
-    const { keyBindingJWT } = await this.getKeyBindingJWT(options.audience, options.nonce, sdJwtHash);
+    const { keyBindingJWT } = await this.getKeyBindingJWT(
+      options.audience,
+      options.nonce,
+      sdJwtHash,
+      options.kbJWTHeader,
+    );
 
     if (options.keyBindingVerifyCallbackFn && typeof options.keyBindingVerifyCallbackFn === 'function') {
       await this.verifyKeyBinding(options.keyBindingVerifyCallbackFn, keyBindingJWT, holderPublicKeyJWK);
     }
 
-    const vcSDJWTWithkeyBindingJWT = `${vcSDJWTWithRevealedDisclosures}${keyBindingJWT}`;
+    const vcSDJWTWithkeyBindingJWT = `${vcSDJWTWithSelectedDisclosures}${keyBindingJWT}`;
 
     return { vcSDJWTWithkeyBindingJWT: vcSDJWTWithkeyBindingJWT, nonce: options.nonce };
   }
 
   /**
-   * Reveals the disclosed claims in the VC SD-JWT.
-   * @param sdJWT The SD-JWT to reveal the claims in.
-   * @param disclosedList The list of disclosed claims.
-   * @throws An error if the disclosed claims cannot be revealed.
+   * Select the disclosed claims in the VC SD-JWT.
+   * @param sdJWT The compact SD-JWT.
+   * @param disclosuresList The list of disclosures to be added to the SD-JWT presentation.
+   * @throws An error if the disclosed claims cannot be selected.
    * @returns The VC SD-JWT with the disclosed claims.
    */
-  revealDisclosures(sdJWT: JWT, disclosedList: Disclosure[]): JWT {
+  selectDisclosures(sdJWT: JWT, disclosuresList: Disclosure[]): JWT {
     if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
       throw new SDJWTVCError('No disclosures in SD-JWT');
     }
@@ -157,23 +177,23 @@ export class Holder {
 
     const compactJWT = sdJWT.split(SD_JWT_FORMAT_SEPARATOR)[0];
 
-    if (!disclosedList || disclosedList.length === 0) {
+    if (!disclosuresList || disclosuresList.length === 0) {
       return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}`;
     }
 
-    const revealedDisclosures = disclosures.filter((disclosure) => {
-      return disclosedList.some((disclosed) => disclosed.disclosure === disclosure.disclosure);
+    const selectedDisclosures = disclosures.filter((disclosure) => {
+      return disclosuresList.some((disclosed) => disclosed.disclosure === disclosure.disclosure);
     });
 
-    if (revealedDisclosures.length === 0) {
+    if (selectedDisclosures.length === 0) {
       return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}`;
     }
 
-    const revealedDisclosuresEncoded = revealedDisclosures
+    const selectedDisclosuresEncoded = selectedDisclosures
       .map((disclosure) => disclosure.disclosure)
       .join(SD_JWT_FORMAT_SEPARATOR);
 
-    return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}${revealedDisclosuresEncoded}${SD_JWT_FORMAT_SEPARATOR}`;
+    return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}${selectedDisclosuresEncoded}${SD_JWT_FORMAT_SEPARATOR}`;
   }
 
   /**

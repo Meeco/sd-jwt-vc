@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.0 - 2024-02-19
+
+### Added
+
+- Add parameters to allow adding params to kbjwt header
+
+### Changed
+
+- renamed `revealDisclosure` to `selectDisclosure` in `PresentVCSDJWT` to better reflect the intent of the function
+
 ## 1.0.4 - 2024-02-14
 
 ### Fixed
@@ -13,7 +23,7 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 
 ## 1.0.3 - 2024-02-14
 
-### Added 
+### Added
 
 - Add fallback to `GET /.well-known/jwt-issuer` in case `GET /.well-known/jwt-vc-issuer` returns error
 

@@ -2,8 +2,8 @@ import { decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
 import { generateKeyPair, importJWK } from 'jose';
 import { Holder } from './holder';
 import { hasherCallbackFn, keyBindingVerifierCallbackFn, signerCallbackFn } from './test-utils/helpers';
-import { SignerConfig } from './types';
-import { defaultHashAlgorithm, supportedAlgorithm } from './util';
+import { SD_KEY_BINDING_JWT_TYP, SignerConfig } from './types';
+import { supportedAlgorithm } from './util';
 
 describe('Holder', () => {
   let holder: Holder;
@@ -50,10 +50,58 @@ describe('Holder', () => {
 
   it('should get KeyBindingJWT', async () => {
     const nonce = 'nIdBbNgRqCXBl8YOkfVdg==';
-    const { keyBindingJWT } = await holder.getKeyBindingJWT('https://valid.verifier.url', nonce, defaultHashAlgorithm);
+    const verifierURL = 'https://valid.verifier.url';
+    const sdHash = 'disclosureDigest';
+
+    const { keyBindingJWT } = await holder.getKeyBindingJWT(verifierURL, nonce, sdHash);
 
     expect(keyBindingJWT).toBeDefined();
-    expect(typeof keyBindingJWT).toBe('string');
+
+    const decodedJWT = decodeJWT(keyBindingJWT);
+
+    expect(decodedJWT.header).toEqual({
+      alg: supportedAlgorithm.ES256,
+      typ: SD_KEY_BINDING_JWT_TYP,
+    });
+
+    expect(decodedJWT.payload).toEqual({
+      aud: verifierURL,
+      iat: expect.any(Number),
+      nonce: nonce,
+      sd_hash: sdHash,
+    });
+  });
+
+  it('should get KeyBindingJWT with additional header params', async () => {
+    const nonce = 'nIdBbNgRqCXBl8YOkfVdg==';
+    const verifierURL = 'https://valid.verifier.url';
+    const sdHash = 'disclosureDigest';
+    const header = {
+      kid: '1b94c',
+      x5c: [
+        'MIIDQjCCAiqgAwIBAgIGATz/FuLiMA0GCSqGSIb3DQEBBQUAMGIxCzAJB...',
+        'MIIDQjCCAiqgAwIBAgIGATz/FuLiMA0GCSqGSIb3DQEBBQUAMGIxCzAJC...',
+      ],
+    };
+
+    const { keyBindingJWT } = await holder.getKeyBindingJWT(verifierURL, nonce, sdHash, header);
+
+    expect(keyBindingJWT).toBeDefined();
+
+    const decodedJWT = decodeJWT(keyBindingJWT);
+
+    expect(decodedJWT.header).toEqual({
+      ...header,
+      alg: supportedAlgorithm.ES256,
+      typ: SD_KEY_BINDING_JWT_TYP,
+    });
+
+    expect(decodedJWT.payload).toEqual({
+      aud: verifierURL,
+      iat: expect.any(Number),
+      nonce: nonce,
+      sd_hash: sdHash,
+    });
   });
 
   it('should present VerifiableCredential SD JWT With KeyBindingJWT', async () => {
@@ -107,7 +155,7 @@ describe('Holder', () => {
     // decode keyBindingJWT with decodeJWT
     const { header, payload, signature } = decodeJWT(keyBindingJWT);
     expect(header.alg).toEqual(supportedAlgorithm.ES256);
-    expect(header.typ).toEqual(Holder.SD_KEY_BINDING_JWT_TYP);
+    expect(header.typ).toEqual(SD_KEY_BINDING_JWT_TYP);
 
     expect(payload.aud).toEqual('https://valid.verifier.url');
     expect(payload.nonce).toEqual(nonceFromVerifier);
@@ -116,11 +164,11 @@ describe('Holder', () => {
     expect(signature).toBeDefined();
   });
 
-  describe('revealDisclosures', () => {
-    it('should reveal disclosed information that matches the disclosed list', () => {
+  describe('selectDisclosures', () => {
+    it('should select disclosed information that matches the disclosures list', () => {
       const sdJWT =
         'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL3ZhbGlkLnZlcmlmaWVyLnVybCIsIm5vbmNlIjoibklkQmJOZWdScUNYQmw4WU9rZlZkZz09IiwiaWF0IjoxNjk1NzgzOTgzMDQxfQ.YwgHkYEpCFRHny5L4KdnU_qARVHL2jAScodRqfF5UP50nbryqIl4i1OuaxuQKala_uYNT-e0D4xzghoxWE56SQ';
-      const disclosedList = [
+      const disclosuresList = [
         {
           disclosure: 'WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0',
           key: 'name',
@@ -129,30 +177,30 @@ describe('Holder', () => {
       ];
       const expected =
         'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~';
-      const result = holder.revealDisclosures(sdJWT, disclosedList);
+      const result = holder.selectDisclosures(sdJWT, disclosuresList);
       expect(result).toEqual(expected);
     });
 
     it('should throw an error if SD-JWT do not have disclosures', () => {
       const sdJWT =
         'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA';
-      const disclosedList = [
+      const disclosuresList = [
         {
           disclosure: 'WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0',
           key: 'name',
           value: 'test person',
         },
       ];
-      expect(() => holder.revealDisclosures(sdJWT, disclosedList)).toThrow('No disclosures in SD-JWT');
+      expect(() => holder.selectDisclosures(sdJWT, disclosuresList)).toThrow('No disclosures in SD-JWT');
     });
 
     it('should exclude all disclosures', () => {
       const sdJWT =
         'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL3ZhbGlkLnZlcmlmaWVyLnVybCIsIm5vbmNlIjoibklkQmJOZWdScUNYQmw4WU9rZlZkZz09IiwiaWF0IjoxNjk1NzgzOTgzMDQxfQ.YwgHkYEpCFRHny5L4KdnU_qARVHL2jAScodRqfF5UP50nbryqIl4i1OuaxuQKala_uYNT-e0D4xzghoxWE56SQ';
-      const disclosedList = [];
+      const disclosuresList = [];
       const expected =
         'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~';
-      const result = holder.revealDisclosures(sdJWT, disclosedList);
+      const result = holder.selectDisclosures(sdJWT, disclosuresList);
       expect(result).toEqual(expected);
     });
   });
