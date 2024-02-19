@@ -11,6 +11,10 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 
 - Add parameters to allow adding params to kbjwt header
 
+### Changed
+
+- renamed `revealDisclosure` to `selectDisclosure` in `PresentVCSDJWT` to better reflect the intent of the function
+
 ## 1.0.4 - 2024-02-14
 
 ### Fixed

@@ -138,10 +138,10 @@ const hasherFnResolver = (alg: string) => {
   const hasher = (data: string): string => {
     const digest = createHash(alg).update(data).digest();
     return base64encode(digest);
-  }
+  };
 
   return Promise.resolve(hasher);
-}
+};
 
 const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
   return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
@@ -203,16 +203,17 @@ async function main() {
   const issuedSDJWT =
     'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
 
-  const disclosedList = [
+  const disclosureList = [
     {
       key: 'name',
       value: 'test person',
+      disclosure: 'WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0',
     },
   ];
 
   const nonceFromVerifier = 'nIdBbNgRqCXBl8YOkfVdg==';
 
-  const { vcSDJWTWithkeyBindingJWT } = await holder.presentVCSDJWT(issuedSDJWT, disclosedList, {
+  const { vcSDJWTWithkeyBindingJWT } = await holder.presentVCSDJWT(issuedSDJWT, disclosureList, {
     nonce: nonceFromVerifier,
     audience: 'https://valid.verifier.url',
     keyBindingVerifyCallbackFn: keyBindingVerifierCallbackFn(),
@@ -302,7 +303,7 @@ async function main() {
     kty: 'OKP',
   });
 
- const vcSDJWTWithoutKeyBinding: string = vcSDJWTWithkeyBindingJWT.slice(
+  const vcSDJWTWithoutKeyBinding: string = vcSDJWTWithkeyBindingJWT.slice(
     0,
     vcSDJWTWithkeyBindingJWT.lastIndexOf('~') + 1,
   );

@@ -138,8 +138,8 @@ export class Holder {
     const shHashingAlgorithm = (jwt.payload['_sd_alg'] as string) || defaultHashAlgorithm;
     const hasher: Hasher = await this.getHasher(shHashingAlgorithm);
 
-    const vcSDJWTWithRevealedDisclosures = this.revealDisclosures(sdJWT, disclosedList);
-    const sdJwtHash: string = hasher(vcSDJWTWithRevealedDisclosures);
+    const vcSDJWTWithSelectedDisclosures = this.selectDisclosures(sdJWT, disclosedList);
+    const sdJwtHash: string = hasher(vcSDJWTWithSelectedDisclosures);
 
     const { keyBindingJWT } = await this.getKeyBindingJWT(
       options.audience,
@@ -152,19 +152,19 @@ export class Holder {
       await this.verifyKeyBinding(options.keyBindingVerifyCallbackFn, keyBindingJWT, holderPublicKeyJWK);
     }
 
-    const vcSDJWTWithkeyBindingJWT = `${vcSDJWTWithRevealedDisclosures}${keyBindingJWT}`;
+    const vcSDJWTWithkeyBindingJWT = `${vcSDJWTWithSelectedDisclosures}${keyBindingJWT}`;
 
     return { vcSDJWTWithkeyBindingJWT: vcSDJWTWithkeyBindingJWT, nonce: options.nonce };
   }
 
   /**
-   * Reveals the disclosed claims in the VC SD-JWT.
-   * @param sdJWT The SD-JWT to reveal the claims in.
-   * @param disclosedList The list of disclosed claims.
-   * @throws An error if the disclosed claims cannot be revealed.
+   * Select the disclosed claims in the VC SD-JWT.
+   * @param sdJWT The compact SD-JWT.
+   * @param disclosuresList The list of disclosures to be added to the SD-JWT presentation.
+   * @throws An error if the disclosed claims cannot be selected.
    * @returns The VC SD-JWT with the disclosed claims.
    */
-  revealDisclosures(sdJWT: JWT, disclosedList: Disclosure[]): JWT {
+  selectDisclosures(sdJWT: JWT, disclosuresList: Disclosure[]): JWT {
     if (typeof sdJWT !== 'string' || !sdJWT.includes(SD_JWT_FORMAT_SEPARATOR)) {
       throw new SDJWTVCError('No disclosures in SD-JWT');
     }
@@ -177,23 +177,23 @@ export class Holder {
 
     const compactJWT = sdJWT.split(SD_JWT_FORMAT_SEPARATOR)[0];
 
-    if (!disclosedList || disclosedList.length === 0) {
+    if (!disclosuresList || disclosuresList.length === 0) {
       return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}`;
     }
 
-    const revealedDisclosures = disclosures.filter((disclosure) => {
-      return disclosedList.some((disclosed) => disclosed.disclosure === disclosure.disclosure);
+    const selectedDisclosures = disclosures.filter((disclosure) => {
+      return disclosuresList.some((disclosed) => disclosed.disclosure === disclosure.disclosure);
     });
 
-    if (revealedDisclosures.length === 0) {
+    if (selectedDisclosures.length === 0) {
       return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}`;
     }
 
-    const revealedDisclosuresEncoded = revealedDisclosures
+    const selectedDisclosuresEncoded = selectedDisclosures
       .map((disclosure) => disclosure.disclosure)
       .join(SD_JWT_FORMAT_SEPARATOR);
 
-    return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}${revealedDisclosuresEncoded}${SD_JWT_FORMAT_SEPARATOR}`;
+    return `${compactJWT}${SD_JWT_FORMAT_SEPARATOR}${selectedDisclosuresEncoded}${SD_JWT_FORMAT_SEPARATOR}`;
   }
 
   /**
