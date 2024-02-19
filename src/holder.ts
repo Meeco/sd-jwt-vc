@@ -3,20 +3,28 @@ import {
   GetHasher,
   Hasher,
   JWK,
+  JWTHeaderParameters,
   KeyBindingVerifier,
   base64encode,
   decodeJWT,
   decodeSDJWT,
 } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
-import { CreateSDJWTPayload, JWT, PresentSDJWTPayload, SD_JWT_FORMAT_SEPARATOR, SignerConfig } from './types.js';
+import {
+  CreateSDJWTPayload,
+  JWT,
+  PresentSDJWTPayload,
+  SD_JWT_FORMAT_SEPARATOR,
+  SD_KEY_BINDING_JWT_TYP,
+  SignerConfig,
+} from './types.js';
 import { defaultHashAlgorithm, isValidUrl } from './util.js';
 
 export class Holder {
   private signer: SignerConfig;
   private hasherFnResolver: GetHasher;
 
-  public static SD_KEY_BINDING_JWT_TYP = 'kb+jwt';
+  public static SD_KEY_BINDING_JWT_TYP = SD_KEY_BINDING_JWT_TYP;
 
   /**
    * Signer Config with callback function used for signing key binding JWT.
@@ -59,10 +67,12 @@ export class Holder {
     audience: string,
     nonce: string,
     sdHash: string,
+    header?: Omit<JWTHeaderParameters, 'typ' | 'alg'>,
   ): Promise<{ keyBindingJWT: JWT; nonce?: string }> {
     try {
       const protectedHeader = {
-        typ: Holder.SD_KEY_BINDING_JWT_TYP,
+        ...header,
+        typ: SD_KEY_BINDING_JWT_TYP,
         alg: this.signer.alg,
       };
 
@@ -101,7 +111,12 @@ export class Holder {
   async presentVCSDJWT(
     sdJWT: JWT,
     disclosedList: Disclosure[],
-    options?: { nonce?: string; audience?: string; keyBindingVerifyCallbackFn?: KeyBindingVerifier },
+    options?: {
+      nonce?: string;
+      audience?: string;
+      keyBindingVerifyCallbackFn?: KeyBindingVerifier;
+      kbJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>;
+    },
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce?: string }> {
     if (options.audience && (typeof options.audience !== 'string' || !isValidUrl(options.audience))) {
       throw new SDJWTVCError('Invalid audience parameter');
@@ -126,7 +141,12 @@ export class Holder {
     const vcSDJWTWithRevealedDisclosures = this.revealDisclosures(sdJWT, disclosedList);
     const sdJwtHash: string = hasher(vcSDJWTWithRevealedDisclosures);
 
-    const { keyBindingJWT } = await this.getKeyBindingJWT(options.audience, options.nonce, sdJwtHash);
+    const { keyBindingJWT } = await this.getKeyBindingJWT(
+      options.audience,
+      options.nonce,
+      sdJwtHash,
+      options.kbJWTHeader,
+    );
 
     if (options.keyBindingVerifyCallbackFn && typeof options.keyBindingVerifyCallbackFn === 'function') {
       await this.verifyKeyBinding(options.keyBindingVerifyCallbackFn, keyBindingJWT, holderPublicKeyJWK);

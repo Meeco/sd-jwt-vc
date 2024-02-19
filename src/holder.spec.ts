@@ -2,8 +2,8 @@ import { decodeJWT, decodeSDJWT } from '@meeco/sd-jwt';
 import { generateKeyPair, importJWK } from 'jose';
 import { Holder } from './holder';
 import { hasherCallbackFn, keyBindingVerifierCallbackFn, signerCallbackFn } from './test-utils/helpers';
-import { SignerConfig } from './types';
-import { defaultHashAlgorithm, supportedAlgorithm } from './util';
+import { SD_KEY_BINDING_JWT_TYP, SignerConfig } from './types';
+import { supportedAlgorithm } from './util';
 
 describe('Holder', () => {
   let holder: Holder;
@@ -50,10 +50,58 @@ describe('Holder', () => {
 
   it('should get KeyBindingJWT', async () => {
     const nonce = 'nIdBbNgRqCXBl8YOkfVdg==';
-    const { keyBindingJWT } = await holder.getKeyBindingJWT('https://valid.verifier.url', nonce, defaultHashAlgorithm);
+    const verifierURL = 'https://valid.verifier.url';
+    const sdHash = 'disclosureDigest';
+
+    const { keyBindingJWT } = await holder.getKeyBindingJWT(verifierURL, nonce, sdHash);
 
     expect(keyBindingJWT).toBeDefined();
-    expect(typeof keyBindingJWT).toBe('string');
+
+    const decodedJWT = decodeJWT(keyBindingJWT);
+
+    expect(decodedJWT.header).toEqual({
+      alg: supportedAlgorithm.ES256,
+      typ: SD_KEY_BINDING_JWT_TYP,
+    });
+
+    expect(decodedJWT.payload).toEqual({
+      aud: verifierURL,
+      iat: expect.any(Number),
+      nonce: nonce,
+      sd_hash: sdHash,
+    });
+  });
+
+  it('should get KeyBindingJWT with additional header params', async () => {
+    const nonce = 'nIdBbNgRqCXBl8YOkfVdg==';
+    const verifierURL = 'https://valid.verifier.url';
+    const sdHash = 'disclosureDigest';
+    const header = {
+      kid: '1b94c',
+      x5c: [
+        'MIIDQjCCAiqgAwIBAgIGATz/FuLiMA0GCSqGSIb3DQEBBQUAMGIxCzAJB...',
+        'MIIDQjCCAiqgAwIBAgIGATz/FuLiMA0GCSqGSIb3DQEBBQUAMGIxCzAJC...',
+      ],
+    };
+
+    const { keyBindingJWT } = await holder.getKeyBindingJWT(verifierURL, nonce, sdHash, header);
+
+    expect(keyBindingJWT).toBeDefined();
+
+    const decodedJWT = decodeJWT(keyBindingJWT);
+
+    expect(decodedJWT.header).toEqual({
+      ...header,
+      alg: supportedAlgorithm.ES256,
+      typ: SD_KEY_BINDING_JWT_TYP,
+    });
+
+    expect(decodedJWT.payload).toEqual({
+      aud: verifierURL,
+      iat: expect.any(Number),
+      nonce: nonce,
+      sd_hash: sdHash,
+    });
   });
 
   it('should present VerifiableCredential SD JWT With KeyBindingJWT', async () => {
@@ -107,7 +155,7 @@ describe('Holder', () => {
     // decode keyBindingJWT with decodeJWT
     const { header, payload, signature } = decodeJWT(keyBindingJWT);
     expect(header.alg).toEqual(supportedAlgorithm.ES256);
-    expect(header.typ).toEqual(Holder.SD_KEY_BINDING_JWT_TYP);
+    expect(header.typ).toEqual(SD_KEY_BINDING_JWT_TYP);
 
     expect(payload.aud).toEqual('https://valid.verifier.url');
     expect(payload.nonce).toEqual(nonceFromVerifier);
