@@ -3,7 +3,7 @@ import {
   KeyBindingVerifier,
   SDJWTPayload,
   Verifier as VerifierCallbackFn,
-  VerifySdJwtOptions,
+  VerifySDJWTOptions,
   decodeJWT,
   decodeSDJWT,
   verifySDJWT,
@@ -41,7 +41,7 @@ export class Verifier {
       }
     }
 
-    const options: VerifySdJwtOptions = {};
+    const options: VerifySDJWTOptions = {};
     if (kbVeriferCallbackFn) {
       options.kb = {
         verifier: kbVeriferCallbackFn,
