@@ -1,6 +1,6 @@
 import { generateKeyPair } from 'jose';
 
-import { DisclosureFrame, decodeDisclosure, decodeJWT } from '@meeco/sd-jwt';
+import { DisclosureFrame, decodeDisclosures, decodeJWT } from '@meeco/sd-jwt';
 import { Issuer } from './issuer';
 import { hasherCallbackFn, signerCallbackFn } from './test-utils/helpers';
 import {
@@ -94,7 +94,7 @@ describe('Issuer', () => {
 
     // remove empty string
     s.pop();
-    const disclosures = decodeDisclosure(s);
+    const disclosures = decodeDisclosures(s);
     s.forEach((disclosure) => {
       expect(disclosures.map((m) => m.disclosure)).toContainEqual(disclosure);
     });
