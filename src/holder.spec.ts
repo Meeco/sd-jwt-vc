@@ -105,47 +105,9 @@ describe('Holder', () => {
   });
 
   it('should present VerifiableCredential SD JWT With KeyBindingJWT', async () => {
-    const _publicJwk = {
-      kty: 'EC',
-      x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
-      y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
-      crv: 'P-256',
-    };
-    const privateKey = {
-      kty: 'EC',
-      x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
-      y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
-      crv: 'P-256',
-      d: '9Ie2xvzUdQBGCjT9ktsZYGzwG4hOWea-zvCQSQSWJxk',
-    };
-
-    const pk = await importJWK(privateKey);
-
-    const signer: SignerConfig = {
-      alg: supportedAlgorithm.ES256,
-      callback: signerCallbackFn(pk),
-    };
-    const holder = new Holder(signer, testHasherFn);
-    const issuedSDJWT =
-      'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
-
-    const disclosedList = [
-      {
-        disclosure: 'WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0',
-        key: 'name',
-        value: 'test person',
-      },
-    ];
-
-    const nonceFromVerifier = 'nIdBbNgRqCXBl8YOkfVdg==';
-
-    const { vcSDJWTWithkeyBindingJWT } = await holder.presentVCSDJWT(issuedSDJWT, disclosedList, {
-      nonce: nonceFromVerifier,
-      audience: 'https://valid.verifier.url',
-      keyBindingVerifyCallbackFn: keyBindingVerifierCallbackFn(),
-    });
-
-    const { disclosures, keyBindingJWT } = decodeSDJWT(vcSDJWTWithkeyBindingJWT);
+    const audience = 'https://valid.verifier.url';
+    const { disclosures, keyBindingJWT, disclosedList, nonceFromVerifier } =
+      await presentVCSDWithKeyBindingJWT(audience);
 
     expect(disclosures[0].key).toEqual(disclosedList[0].key);
     expect(disclosures[0].value).toEqual(disclosedList[0].value);
@@ -157,7 +119,29 @@ describe('Holder', () => {
     expect(header.alg).toEqual(supportedAlgorithm.ES256);
     expect(header.typ).toEqual(SD_KEY_BINDING_JWT_TYP);
 
-    expect(payload.aud).toEqual('https://valid.verifier.url');
+    expect(payload.aud).toEqual(audience);
+    expect(payload.nonce).toEqual(nonceFromVerifier);
+    expect(payload.sd_hash).toBeDefined();
+
+    expect(signature).toBeDefined();
+  });
+
+  it('should allow to present VC SD JWT with KeyBindingJWT when AUD is not valid URL', async () => {
+    const audience = 'verifier.ssi.tir.budru.de';
+    const { disclosures, keyBindingJWT, disclosedList, nonceFromVerifier } =
+      await presentVCSDWithKeyBindingJWT(audience);
+
+    expect(disclosures[0].key).toEqual(disclosedList[0].key);
+    expect(disclosures[0].value).toEqual(disclosedList[0].value);
+    expect(keyBindingJWT).toBeDefined();
+    expect(typeof keyBindingJWT).toBe('string');
+
+    // decode keyBindingJWT with decodeJWT
+    const { header, payload, signature } = decodeJWT(keyBindingJWT);
+    expect(header.alg).toEqual(supportedAlgorithm.ES256);
+    expect(header.typ).toEqual(SD_KEY_BINDING_JWT_TYP);
+
+    expect(payload.aud).toEqual(audience);
     expect(payload.nonce).toEqual(nonceFromVerifier);
     expect(payload.sd_hash).toBeDefined();
 
@@ -204,4 +188,50 @@ describe('Holder', () => {
       expect(result).toEqual(expected);
     });
   });
+
+  //helper function
+  async function presentVCSDWithKeyBindingJWT(audience: string) {
+    const _publicJwk = {
+      kty: 'EC',
+      x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
+      y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
+      crv: 'P-256',
+    };
+    const privateKey = {
+      kty: 'EC',
+      x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
+      y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
+      crv: 'P-256',
+      d: '9Ie2xvzUdQBGCjT9ktsZYGzwG4hOWea-zvCQSQSWJxk',
+    };
+
+    const pk = await importJWK(privateKey);
+
+    const signer: SignerConfig = {
+      alg: supportedAlgorithm.ES256,
+      callback: signerCallbackFn(pk),
+    };
+    const holder = new Holder(signer, testHasherFn);
+    const issuedSDJWT =
+      'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
+    const disclosedList = [
+      {
+        disclosure: 'WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0',
+        key: 'name',
+        value: 'test person',
+      },
+    ];
+
+    const nonceFromVerifier = 'nIdBbNgRqCXBl8YOkfVdg==';
+
+    const { vcSDJWTWithkeyBindingJWT } = await holder.presentVCSDJWT(issuedSDJWT, disclosedList, {
+      nonce: nonceFromVerifier,
+      audience: audience,
+      keyBindingVerifyCallbackFn: keyBindingVerifierCallbackFn(),
+    });
+
+    const { disclosures, keyBindingJWT } = decodeSDJWT(vcSDJWTWithkeyBindingJWT);
+
+    return { disclosures, keyBindingJWT, disclosedList, nonceFromVerifier };
+  }
 });

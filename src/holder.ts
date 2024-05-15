@@ -18,7 +18,7 @@ import {
   SD_KEY_BINDING_JWT_TYP,
   SignerConfig,
 } from './types.js';
-import { defaultHashAlgorithm, isValidUrl } from './util.js';
+import { defaultHashAlgorithm } from './util.js';
 
 export class Holder {
   private signer: SignerConfig;
@@ -118,7 +118,7 @@ export class Holder {
       kbJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>;
     },
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce?: string }> {
-    if (options.audience && (typeof options.audience !== 'string' || !isValidUrl(options.audience))) {
+    if (options.audience && typeof options.audience !== 'string') {
       throw new SDJWTVCError('Invalid audience parameter');
     }
 
