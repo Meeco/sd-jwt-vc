@@ -151,7 +151,7 @@ describe('Issuer', () => {
         iat: Math.floor(Date.now() / 1000),
         cnf: {
           jwk: {
-            kty: 'test'
+            kty: 'test',
           },
         },
       };
@@ -166,7 +166,7 @@ describe('Issuer', () => {
         iat: Math.floor(Date.now() / 1000),
         cnf: {
           jwk: {
-            kty: 'test'
+            kty: 'test',
           },
         },
         iss: 'invalid-url',
@@ -181,7 +181,7 @@ describe('Issuer', () => {
       const sdJWTPayload = {
         cnf: {
           jwk: {
-            kty: 'test'
+            kty: 'test',
           },
         },
         iss: 'https://valid.issuer.url',

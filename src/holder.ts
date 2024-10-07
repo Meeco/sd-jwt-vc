@@ -209,7 +209,7 @@ export class Holder {
   ) {
     try {
       await keyBindingVerifierCallbackFn(keyBindingJWT, holderPublicKeyJWK);
-    } catch (e) {
+    } catch (_e) {
       throw new SDJWTVCError('Failed to verify key binding JWT: SD JWT holder public key does not match private key');
     }
   }
