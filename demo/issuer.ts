@@ -1,6 +1,6 @@
-import { DisclosureFrame, Hasher, Signer, base64encode } from '@meeco/sd-jwt';
+import { DisclosureFrame, Hasher, JWTHeaderParameters, JWTPayload, Signer, base64encode } from '@meeco/sd-jwt';
 import { createHash } from 'crypto';
-import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK } from 'jose';
+import { KeyLike, SignJWT, importJWK } from 'jose';
 import {
   CreateSDJWTPayload,
   HasherConfig,
