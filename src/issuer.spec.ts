@@ -150,9 +150,7 @@ describe('Issuer', () => {
       const sdJWTPayload = {
         iat: Math.floor(Date.now() / 1000),
         cnf: {
-          jwk: {
-            kty: 'test'
-          },
+          jwk: {},
         },
       };
 
@@ -165,9 +163,7 @@ describe('Issuer', () => {
       const sdJWTPayload = {
         iat: Math.floor(Date.now() / 1000),
         cnf: {
-          jwk: {
-            kty: 'test'
-          },
+          jwk: {},
         },
         iss: 'invalid-url',
       };
@@ -180,9 +176,7 @@ describe('Issuer', () => {
     it('should throw an error if iat is missing', () => {
       const sdJWTPayload = {
         cnf: {
-          jwk: {
-            kty: 'test'
-          },
+          jwk: {},
         },
         iss: 'https://valid.issuer.url',
       };
@@ -247,7 +241,7 @@ describe('Issuer', () => {
       const sdJWTPayload = {
         iat: Math.floor(Date.now() / 1000),
         cnf: {
-          jwk: <any>{
+          jwk: {
             crv: 'P-256',
             x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
             y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
