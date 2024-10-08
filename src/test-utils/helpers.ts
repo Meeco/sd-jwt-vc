@@ -1,6 +1,6 @@
-import { Hasher, KeyBindingVerifier, Signer, Verifier, base64encode, decodeJWT } from '@meeco/sd-jwt';
+import { Hasher, JWK, KeyBindingVerifier, Signer, Verifier, base64encode, decodeJWT } from '@meeco/sd-jwt';
 import { createHash, randomBytes } from 'crypto';
-import { JWK, JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK, jwtVerify } from 'jose';
+import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK, jwtVerify } from 'jose';
 import { SDJWTVCError } from '../errors';
 import { NonceGenerator } from '../types';
 import { defaultHashAlgorithm, supportedAlgorithm } from '../util';
@@ -37,6 +37,7 @@ export function kbVeriferCallbackFn(
 
     const holderKey = await importJWK(holderJWK, header.alg);
     const verifiedKbJWT = await jwtVerify(kbjwt, holderKey);
+
     return !!verifiedKbJWT;
   };
 }
@@ -51,6 +52,7 @@ export function keyBindingVerifierCallbackFn(): KeyBindingVerifier {
 
     const holderKey = await importJWK(holderJWK, header.alg);
     const verifiedKbJWT = await jwtVerify(kbjwt, holderKey);
+
     return !!verifiedKbJWT;
   };
 }

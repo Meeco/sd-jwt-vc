@@ -14,8 +14,6 @@ export interface Cnf {
 export interface JWTHeader {
   typ: string;
   alg: string;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [x: string]: any;
 }
 
