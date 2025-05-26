@@ -11,6 +11,8 @@ import {
 import { SDJWTVCError } from './errors.js';
 import { JWT } from './types.js';
 
+const VALID_TYP_VALUES = ['vc+sd-jwt', 'dc+sd-jwt'];
+
 export class Verifier {
   /**
    * Verifies a SD-JWT.
@@ -28,6 +30,14 @@ export class Verifier {
     kbVeriferCallbackFn?: KeyBindingVerifier,
   ): Promise<SDJWTPayload> {
     const { keyBindingJWT } = decodeSDJWT(sdJWT);
+
+    const { header: jwtHeader } = decodeJWT(sdJWT.split('~')[0]);
+    if (!jwtHeader.typ || !VALID_TYP_VALUES.includes(jwtHeader.typ as string)) {
+      throw new SDJWTVCError(
+        `Invalid typ header. Expected one of ${VALID_TYP_VALUES.join(', ')}, received ${jwtHeader.typ}`,
+      );
+    }
+
     if (keyBindingJWT) {
       if (!kbVeriferCallbackFn) {
         throw new SDJWTVCError('Missing key binding verifier callback function');

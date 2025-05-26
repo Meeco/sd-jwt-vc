@@ -14,7 +14,7 @@ import { isValidUrl } from './util.js';
 export class Issuer {
   private hasher: HasherConfig;
   private signer: SignerConfig;
-  private static SD_JWT_TYP = 'vc+sd-jwt';
+  private static SD_JWT_TYP = 'dc+sd-jwt';
 
   constructor(signer: SignerConfig, hasher: HasherConfig) {
     if (!signer?.callback || typeof signer?.callback !== 'function') {
