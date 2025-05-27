@@ -69,20 +69,7 @@ async function main() {
   };
 
   const vcClaims = {
-    given_name: 'John',
-    family_name: 'Doe',
-    email: 'johndoe@example.com',
-    phone_number: '+1-202-555-0101',
-    address: {
-      street_address: '123 Main St',
-      locality: 'Anytown',
-      region: 'Anystate',
-      country: 'US',
-    },
-    birthdate: '1940-01-01',
-    is_over_18: true,
-    is_over_21: true,
-    is_over_65: true,
+    person: { name: 'test person', age: 25 },
   };
 
   const sdVCClaimsDisclosureFrame: DisclosureFrame = {

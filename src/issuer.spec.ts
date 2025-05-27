@@ -80,7 +80,7 @@ describe('Issuer', () => {
     const { header, payload: jwtPayload } = decodeJWT(s.shift() || '');
 
     expect(header.alg).toEqual(signer.alg);
-    expect(header.typ).toEqual('dc+sd-jwt'); // Updated to dc+sd-jwt
+    expect(header.typ).toEqual('dc+sd-jwt');
     expect(header.x5c).toEqual(sdVCHeader.x5c);
     expect(header.kid).toEqual(sdVCHeader.kid);
 

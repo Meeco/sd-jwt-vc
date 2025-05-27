@@ -29,14 +29,14 @@ export class Verifier {
     hasherCallbackFn: Hasher,
     kbVeriferCallbackFn?: KeyBindingVerifier,
   ): Promise<SDJWTPayload> {
-    const { keyBindingJWT } = decodeSDJWT(sdJWT);
-
     const { header: jwtHeader } = decodeJWT(sdJWT.split('~')[0]);
     if (!jwtHeader.typ || !VALID_TYP_VALUES.includes(jwtHeader.typ as string)) {
       throw new SDJWTVCError(
         `Invalid typ header. Expected one of ${VALID_TYP_VALUES.join(', ')}, received ${jwtHeader.typ}`,
       );
     }
+
+    const { keyBindingJWT } = decodeSDJWT(sdJWT);
 
     if (keyBindingJWT) {
       if (!kbVeriferCallbackFn) {
