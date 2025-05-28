@@ -11,7 +11,7 @@ import {
   SignerConfig,
   VCClaims,
 } from './types';
-import { supportedAlgorithm } from './util';
+import { ValidTypValues, supportedAlgorithm } from './util';
 
 describe('Issuer', () => {
   let issuer: Issuer;
@@ -80,7 +80,7 @@ describe('Issuer', () => {
     const { header, payload: jwtPayload } = decodeJWT(s.shift() || '');
 
     expect(header.alg).toEqual(signer.alg);
-    expect(header.typ).toEqual('dc+sd-jwt');
+    expect(header.typ).toEqual(ValidTypValues.DCSDJWT);
     expect(header.x5c).toEqual(sdVCHeader.x5c);
     expect(header.kid).toEqual(sdVCHeader.kid);
 
@@ -114,7 +114,7 @@ describe('Issuer', () => {
       sdJWTHeader: { typ: 'invalid-typ' },
     });
     const { header: jwtHeader } = decodeJWT(VCSDJwt.split(SD_JWT_FORMAT_SEPARATOR).shift() || '');
-    expect(jwtHeader.typ).toEqual('dc+sd-jwt');
+    expect(jwtHeader.typ).toEqual(ValidTypValues.DCSDJWT);
   });
 
   describe('Issuer', () => {

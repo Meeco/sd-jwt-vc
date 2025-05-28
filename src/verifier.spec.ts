@@ -1,7 +1,7 @@
 import { Hasher } from '@meeco/sd-jwt';
 import { importJWK } from 'jose';
 import { hasherCallbackFn, kbVeriferCallbackFn, verifierCallbackFn } from './test-utils/helpers';
-import { defaultHashAlgorithm } from './util';
+import { ValidTypValues, defaultHashAlgorithm } from './util';
 import { Verifier } from './verifier';
 
 describe('Verifier', () => {
@@ -179,7 +179,9 @@ describe('Verifier', () => {
 
       await expect(() =>
         verifier.verifyVCSDJWT(invalidTypJwt, verifierCallbackFn(issuerPubKey), hasherCallbackFn(defaultHashAlgorithm)),
-      ).rejects.toThrow('Invalid typ header. Expected one of vc+sd-jwt, dc+sd-jwt, received invalid+typ');
+      ).rejects.toThrow(
+        `Invalid typ header. Expected one of ${ValidTypValues.VCSDJWT}, ${ValidTypValues.DCSDJWT}, received invalid+typ`,
+      );
     });
 
     it('should throw an error if keybinding jwt present and kbVeriferCallbackFn is not provided', async () => {

@@ -10,8 +10,9 @@ import {
 } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
 import { JWT } from './types.js';
+import { ValidTypValues } from './util.js';
 
-const VALID_TYP_VALUES = ['vc+sd-jwt', 'dc+sd-jwt'];
+const VALID_TYP_VALUES_ARRAY: string[] = Object.values(ValidTypValues);
 
 export class Verifier {
   /**
@@ -30,9 +31,10 @@ export class Verifier {
     kbVeriferCallbackFn?: KeyBindingVerifier,
   ): Promise<SDJWTPayload> {
     const { header: jwtHeader } = decodeJWT(sdJWT.split('~')[0]);
-    if (!jwtHeader.typ || !VALID_TYP_VALUES.includes(jwtHeader.typ as string)) {
+
+    if (!jwtHeader.typ || !VALID_TYP_VALUES_ARRAY.includes(jwtHeader.typ as string)) {
       throw new SDJWTVCError(
-        `Invalid typ header. Expected one of ${VALID_TYP_VALUES.join(', ')}, received ${jwtHeader.typ}`,
+        `Invalid typ header. Expected one of ${VALID_TYP_VALUES_ARRAY.join(', ')}, received ${jwtHeader.typ}`,
       );
     }
 

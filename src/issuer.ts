@@ -9,12 +9,12 @@ import {
   SignerConfig,
   VCClaims,
 } from './types.js';
-import { isValidUrl } from './util.js';
+import { ValidTypValues, isValidUrl } from './util.js';
 
 export class Issuer {
   private hasher: HasherConfig;
   private signer: SignerConfig;
-  private static SD_JWT_TYP = 'dc+sd-jwt';
+  private static SD_JWT_TYP = ValidTypValues.DCSDJWT;
 
   constructor(signer: SignerConfig, hasher: HasherConfig) {
     if (!signer?.callback || typeof signer?.callback !== 'function') {

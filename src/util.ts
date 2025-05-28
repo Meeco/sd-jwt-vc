@@ -2,6 +2,11 @@ import { JWK, decodeJWT } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
 import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types.js';
 
+export enum ValidTypValues {
+  VCSDJWT = 'vc+sd-jwt',
+  DCSDJWT = 'dc+sd-jwt',
+}
+
 export enum supportedAlgorithm {
   EdDSA = 'EdDSA',
   ES256 = 'ES256',
