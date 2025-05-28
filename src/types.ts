@@ -31,6 +31,7 @@ export interface CreateSignedJWTOpts {
   sdVCClaimsDisclosureFrame?: DisclosureFrame;
   saltGenerator?: SaltGenerator;
   sdJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>;
+  typeMetadataGlueDocuments?: Array<Record<string, any> | string>;
 }
 
 export interface PresentSDJWTPayload extends JWTPayload {

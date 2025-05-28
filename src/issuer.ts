@@ -1,4 +1,11 @@
-import { DisclosureFrame, JWTHeaderParameters, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
+import {
+  DisclosureFrame,
+  JWTHeaderParameters,
+  SDJWTPayload,
+  SaltGenerator,
+  base64encode,
+  issueSDJWT,
+} from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
 import {
   CreateSDJWTPayload,
@@ -67,7 +74,14 @@ export class Issuer {
    * Creates a signed SD-JWT VC.
    */
   async createSignedVCSDJWT(opts: CreateSignedJWTOpts): Promise<JWT> {
-    const { vcClaims, sdJWTPayload, sdVCClaimsDisclosureFrame = {}, saltGenerator, sdJWTHeader } = opts;
+    const {
+      vcClaims,
+      sdJWTPayload,
+      sdVCClaimsDisclosureFrame = {},
+      saltGenerator,
+      sdJWTHeader,
+      typeMetadataGlueDocuments,
+    } = opts;
     if (!vcClaims) throw new SDJWTVCError('vcClaims is required');
     if (!sdJWTPayload) throw new SDJWTVCError('sdJWTPayload is required');
 
@@ -75,25 +89,29 @@ export class Issuer {
     this.validateSDJWTPayload(sdJWTPayload);
     this.validateSDVCClaimsDisclosureFrame(sdVCClaimsDisclosureFrame);
 
+    const header: JWTHeaderParameters & { vctm?: string[] } = {
+      ...sdJWTHeader,
+      typ: Issuer.SD_JWT_TYP,
+      alg: this.signer.alg,
+    };
+
+    if (typeMetadataGlueDocuments && typeMetadataGlueDocuments.length > 0) {
+      header.vctm = typeMetadataGlueDocuments.map((doc) => {
+        const docString = typeof doc === 'string' ? doc : JSON.stringify(doc);
+        return base64encode(docString);
+      });
+    }
+
     try {
-      const jwt = await issueSDJWT(
-        {
-          ...sdJWTHeader,
-          typ: Issuer.SD_JWT_TYP,
-          alg: this.signer.alg,
+      const jwt = await issueSDJWT(header, { ...sdJWTPayload, ...vcClaims }, sdVCClaimsDisclosureFrame, {
+        signer: this.signer.callback,
+        hash: {
+          alg: this.hasher.alg,
+          callback: this.hasher.callback,
         },
-        { ...sdJWTPayload, ...vcClaims },
-        sdVCClaimsDisclosureFrame,
-        {
-          signer: this.signer.callback,
-          hash: {
-            alg: this.hasher.alg,
-            callback: this.hasher.callback,
-          },
-          cnf: sdJWTPayload?.cnf,
-          generateSalt: saltGenerator,
-        },
-      );
+        cnf: sdJWTPayload?.cnf,
+        generateSalt: saltGenerator,
+      });
 
       return jwt;
     } catch (error: any) {

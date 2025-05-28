@@ -1,6 +1,5 @@
+import { DisclosureFrame, base64decode, decodeDisclosures, decodeJWT } from '@meeco/sd-jwt';
 import { generateKeyPair } from 'jose';
-
-import { DisclosureFrame, decodeDisclosures, decodeJWT } from '@meeco/sd-jwt';
 import { Issuer } from './issuer';
 import { hasherCallbackFn, signerCallbackFn } from './test-utils/helpers';
 import {
@@ -115,6 +114,45 @@ describe('Issuer', () => {
     });
     const { header: jwtHeader } = decodeJWT(VCSDJwt.split(SD_JWT_FORMAT_SEPARATOR).shift() || '');
     expect(jwtHeader.typ).toEqual(ValidTypValues.DCSDJWT);
+  });
+
+  it('should embed type metadata in vctm header when provided', async () => {
+    const payload: CreateSDJWTPayload = {
+      iat: Math.floor(Date.now() / 1000),
+      cnf: { jwk: { kty: 'EC', crv: 'P-256', x: 'x', y: 'y' } },
+      iss: 'https://valid.issuer.url',
+      vct: 'test_vct_for_vctm',
+    };
+    const vcClaims: VCClaims = { data: 'some_claim_data' };
+    const typeMetadataDoc1 = { vct: 'test_vct_for_vctm', name: 'Test Credential Type 1' };
+    const typeMetadataDoc2String = JSON.stringify({ vct: 'test_vct_for_vctm_extended', name: 'Extended Type' });
+
+    const VCSDJwtWithVctm = await issuer.createSignedVCSDJWT({
+      vcClaims,
+      sdJWTPayload: payload,
+      typeMetadataGlueDocuments: [typeMetadataDoc1, typeMetadataDoc2String],
+    });
+
+    const { header: headerWithVctm } = decodeJWT(VCSDJwtWithVctm.split(SD_JWT_FORMAT_SEPARATOR).shift() || '');
+    expect(headerWithVctm.vctm).toBeDefined();
+    expect(Array.isArray(headerWithVctm.vctm)).toBe(true);
+
+    expect((headerWithVctm.vctm as any[]).length).toBe(2);
+
+    const decodedDoc1 = JSON.parse(base64decode((headerWithVctm.vctm as any[])[0]));
+
+    const decodedDoc2 = JSON.parse(base64decode((headerWithVctm.vctm as any[])[1]));
+
+    expect(decodedDoc1).toEqual(typeMetadataDoc1);
+    expect(decodedDoc2).toEqual(JSON.parse(typeMetadataDoc2String));
+
+    // Test without vctm
+    const VCSDJwtWithoutVctm = await issuer.createSignedVCSDJWT({
+      vcClaims,
+      sdJWTPayload: payload,
+    });
+    const { header: headerWithoutVctm } = decodeJWT(VCSDJwtWithoutVctm.split(SD_JWT_FORMAT_SEPARATOR).shift() || '');
+    expect(headerWithoutVctm.vctm).toBeUndefined();
   });
 
   describe('Issuer', () => {
