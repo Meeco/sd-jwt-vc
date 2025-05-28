@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.0 - 2025-XX-XX
+
+### Changed
+
+- The `typ` header for issued SD-JWT VCs is now `dc+sd-jwt` as per [draft-08](https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#section-3.2.1)
+- The `Verifier` will accept both `vc+sd-jwt` and `dc+sd-jwt`.
+
 ## 1.3.0 - 2024-10-07
 
 ### Security

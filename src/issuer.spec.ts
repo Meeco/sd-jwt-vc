@@ -11,7 +11,7 @@ import {
   SignerConfig,
   VCClaims,
 } from './types';
-import { supportedAlgorithm } from './util';
+import { ValidTypValues, supportedAlgorithm } from './util';
 
 describe('Issuer', () => {
   let issuer: Issuer;
@@ -80,7 +80,7 @@ describe('Issuer', () => {
     const { header, payload: jwtPayload } = decodeJWT(s.shift() || '');
 
     expect(header.alg).toEqual(signer.alg);
-    expect(header.typ).toEqual('vc+sd-jwt');
+    expect(header.typ).toEqual(ValidTypValues.DCSDJWT);
     expect(header.x5c).toEqual(sdVCHeader.x5c);
     expect(header.kid).toEqual(sdVCHeader.kid);
 
@@ -98,6 +98,23 @@ describe('Issuer', () => {
     s.forEach((disclosure) => {
       expect(disclosures.map((m) => m.disclosure)).toContainEqual(disclosure);
     });
+  });
+
+  it('should default to dc+sd-jwt if an invalid typ is provided in header', async () => {
+    const payload: CreateSDJWTPayload = {
+      iat: Math.floor(Date.now() / 1000),
+      cnf: { jwk: { kty: 'EC', crv: 'P-256', x: 'x', y: 'y' } },
+      iss: 'https://valid.issuer.url',
+      vct: 'test_vct',
+    };
+    const vcClaims: VCClaims = { claim: 'value' };
+    const VCSDJwt = await issuer.createSignedVCSDJWT({
+      vcClaims,
+      sdJWTPayload: payload,
+      sdJWTHeader: { typ: 'invalid-typ' },
+    });
+    const { header: jwtHeader } = decodeJWT(VCSDJwt.split(SD_JWT_FORMAT_SEPARATOR).shift() || '');
+    expect(jwtHeader.typ).toEqual(ValidTypValues.DCSDJWT);
   });
 
   describe('Issuer', () => {

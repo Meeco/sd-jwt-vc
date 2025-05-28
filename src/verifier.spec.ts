@@ -1,7 +1,7 @@
 import { Hasher } from '@meeco/sd-jwt';
 import { importJWK } from 'jose';
 import { hasherCallbackFn, kbVeriferCallbackFn, verifierCallbackFn } from './test-utils/helpers';
-import { defaultHashAlgorithm } from './util';
+import { ValidTypValues, defaultHashAlgorithm } from './util';
 import { Verifier } from './verifier';
 
 describe('Verifier', () => {
@@ -16,7 +16,7 @@ describe('Verifier', () => {
   });
 
   describe('verifyVCDJWT', () => {
-    it('should verify VerifiableCredential SD JWT With KeyBindingJWT', async () => {
+    it('should verify VerifiableCredential SD JWT With KeyBindingJWT (vc+sd-jwt typ)', async () => {
       const claims = {
         iat: 1695682408857,
         cnf: {
@@ -60,7 +60,48 @@ describe('Verifier', () => {
       );
       expect(result).toEqual(claims);
     });
-    it('should verify VerifiableCredential SD JWT Without KeyBindingJWT', async () => {
+
+    it('should verify VerifiableCredential SD JWT With KeyBindingJWT (dc+sd-jwt typ)', async () => {
+      const claims = {
+        iat: 1748320939,
+        cnf: {
+          jwk: {
+            kty: 'EC',
+            x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
+            y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
+            crv: 'P-256',
+          },
+        },
+        iss: 'http://issuer.url/jwks',
+        vct: 'https://credentials.example.com/identity_credential',
+        person: { name: 'test person', age: 25 },
+      };
+
+      const dcSdJwtWithKb =
+        'eyJ0eXAiOiJkYytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJpYXQiOjE3NDgzMjA5MzksImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHA6Ly9pc3N1ZXIudXJsL2p3a3MiLCJ2Y3QiOiJodHRwczovL2NyZWRlbnRpYWxzLmV4YW1wbGUuY29tL2lkZW50aXR5X2NyZWRlbnRpYWwiLCJfc2QiOlsiYnY3ZmZiaWRnV3JnR19YNTlBUjZYZXBOb3I1RjNZeTNxZ01IOUZHbmlaZyJdLCJfc2RfYWxnIjoic2hhMjU2In0.kngQbIsVNEA03Pif5om5fvnt9C2Sz83c-XblGUAWDyseGYqhSu5nwrdhpB1Gc-WaKrtjFMkFVouxQTGjsWApuA~WyJ6bkZLdk5CZnh4dDNlVDJVIiwicGVyc29uIix7Im5hbWUiOiJ0ZXN0IHBlcnNvbiIsImFnZSI6MjV9XQ~eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL3ZhbGlkLnZlcmlmaWVyLnVybCIsIm5vbmNlIjoibklkQmJOZ1JxQ1hCbDhZT2tmVmRnPT0iLCJzZF9oYXNoIjoiUUJiNVdud2FTTTVjODEtNzhIN3JWS0ZKYVl2QlZ0YWFoRTBOX09MNlgtSSIsImlhdCI6MTc0ODMyMTAzMn0.XwQE8BY-i1UMihAuwushw5lc1pUfjPvlgAUrcqIGvKNYxBTMeiMeDr2DIUjIFqUqMsK3o7eYcd4jPP2DWU56cQ';
+      const nonce = 'nIdBbNgRqCXBl8YOkfVdg==';
+
+      const issuerPubKey = await importJWK({
+        kty: 'EC',
+        x: 'MRbP5zJSo9CxUla-ThmzvwUl_3f76bCwrnuQOPK54dQ',
+        y: 't1VIetPpyi7rV8ARvaas1VmPmgd6YGo1e-Z5aqedwEU',
+        crv: 'P-256',
+      });
+
+      const vcSDJWTWithoutKeyBinding: string = dcSdJwtWithKb.slice(0, dcSdJwtWithKb.lastIndexOf('~') + 1);
+      const hasher: Hasher = hasherCallbackFn(defaultHashAlgorithm);
+      const sdJwtHash: string = hasher(vcSDJWTWithoutKeyBinding);
+
+      const result = await verifier.verifyVCSDJWT(
+        dcSdJwtWithKb,
+        verifierCallbackFn(issuerPubKey),
+        hasherCallbackFn(defaultHashAlgorithm),
+        kbVeriferCallbackFn('https://valid.verifier.url', nonce, sdJwtHash),
+      );
+      expect(result).toEqual(claims);
+    });
+
+    it('should verify VerifiableCredential SD JWT Without KeyBindingJWT (vc+sd-jwt typ)', async () => {
       const claims = {
         iat: 1695682408857,
         cnf: {
@@ -92,6 +133,55 @@ describe('Verifier', () => {
         hasherCallbackFn(defaultHashAlgorithm),
       );
       expect(result).toEqual(claims);
+    });
+
+    it('should verify VerifiableCredential SD JWT Without KeyBindingJWT (dc+sd-jwt typ)', async () => {
+      const claims = {
+        iat: 1748320939,
+        cnf: {
+          jwk: {
+            kty: 'EC',
+            x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
+            y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
+            crv: 'P-256',
+          },
+        },
+        iss: 'http://issuer.url/jwks',
+        vct: 'https://credentials.example.com/identity_credential',
+        person: { name: 'test person', age: 25 },
+      };
+
+      const dcSdJwtWithoutKb =
+        'eyJ0eXAiOiJkYytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJpYXQiOjE3NDgzMjA5MzksImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHA6Ly9pc3N1ZXIudXJsL2p3a3MiLCJ2Y3QiOiJodHRwczovL2NyZWRlbnRpYWxzLmV4YW1wbGUuY29tL2lkZW50aXR5X2NyZWRlbnRpYWwiLCJfc2QiOlsiYnY3ZmZiaWRnV3JnR19YNTlBUjZYZXBOb3I1RjNZeTNxZ01IOUZHbmlaZyJdLCJfc2RfYWxnIjoic2hhMjU2In0.kngQbIsVNEA03Pif5om5fvnt9C2Sz83c-XblGUAWDyseGYqhSu5nwrdhpB1Gc-WaKrtjFMkFVouxQTGjsWApuA~WyJ6bkZLdk5CZnh4dDNlVDJVIiwicGVyc29uIix7Im5hbWUiOiJ0ZXN0IHBlcnNvbiIsImFnZSI6MjV9XQ~';
+
+      const issuerPubKey = await importJWK({
+        kty: 'EC',
+        x: 'MRbP5zJSo9CxUla-ThmzvwUl_3f76bCwrnuQOPK54dQ',
+        y: 't1VIetPpyi7rV8ARvaas1VmPmgd6YGo1e-Z5aqedwEU',
+        crv: 'P-256',
+      });
+
+      const result = await verifier.verifyVCSDJWT(
+        dcSdJwtWithoutKb,
+        verifierCallbackFn(issuerPubKey),
+        hasherCallbackFn(defaultHashAlgorithm),
+      );
+      expect(result).toEqual(claims);
+    });
+
+    it('should throw an error for invalid typ header', async () => {
+      const invalidTypJwt = 'eyJ0eXAiOiJpbnZhbGlkK3R5cCIsImFsZyI6IkVkRFNBIn0.eyJpc3MiOiJ0ZXN0LWlzc3VlciJ9.c2lnbmF0dXJl';
+      const issuerPubKey = await importJWK({
+        crv: 'Ed25519',
+        x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
+        kty: 'OKP',
+      });
+
+      await expect(() =>
+        verifier.verifyVCSDJWT(invalidTypJwt, verifierCallbackFn(issuerPubKey), hasherCallbackFn(defaultHashAlgorithm)),
+      ).rejects.toThrow(
+        `Invalid typ header. Expected one of ${ValidTypValues.VCSDJWT}, ${ValidTypValues.DCSDJWT}, received invalid+typ`,
+      );
     });
 
     it('should throw an error if keybinding jwt present and kbVeriferCallbackFn is not provided', async () => {

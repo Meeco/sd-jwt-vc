@@ -10,6 +10,9 @@ import {
 } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
 import { JWT } from './types.js';
+import { ValidTypValues } from './util.js';
+
+const VALID_TYP_VALUES_ARRAY: string[] = Object.values(ValidTypValues);
 
 export class Verifier {
   /**
@@ -27,7 +30,16 @@ export class Verifier {
     hasherCallbackFn: Hasher,
     kbVeriferCallbackFn?: KeyBindingVerifier,
   ): Promise<SDJWTPayload> {
+    const { header: jwtHeader } = decodeJWT(sdJWT.split('~')[0]);
+
+    if (!jwtHeader.typ || !VALID_TYP_VALUES_ARRAY.includes(jwtHeader.typ as string)) {
+      throw new SDJWTVCError(
+        `Invalid typ header. Expected one of ${VALID_TYP_VALUES_ARRAY.join(', ')}, received ${jwtHeader.typ}`,
+      );
+    }
+
     const { keyBindingJWT } = decodeSDJWT(sdJWT);
+
     if (keyBindingJWT) {
       if (!kbVeriferCallbackFn) {
         throw new SDJWTVCError('Missing key binding verifier callback function');
