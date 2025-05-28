@@ -1,6 +1,7 @@
-import { JWK, decodeJWT } from '@meeco/sd-jwt';
+import { decodeJWT, JWK, Hasher as SDJWTHasher, SDJWTPayload } from '@meeco/sd-jwt';
+import { decodeProtectedHeader } from 'jose';
 import { SDJWTVCError } from './errors.js';
-import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types.js';
+import { JWT, SD_JWT_FORMAT_SEPARATOR, TypeMetadata } from './types.js';
 
 export enum ValidTypValues {
   VCSDJWT = 'vc+sd-jwt',
@@ -137,5 +138,100 @@ export function getIssuerPublicKeyJWK(jwks: any, kid?: string): JWK | undefined 
     return jwks.keys.find((key: any) => key.kid === kid);
   } else {
     return jwks.keys[0];
+  }
+}
+
+/**
+ * Extracts and decodes Type Metadata documents embedded in the vctm unprotected header of an SD-JWT VC.
+ * @param sdJwtVC The SD-JWT VC string.
+ * @returns An array of TypeMetadata objects, or null if not present.
+ * @throws An error if the vctm header is present but not an array, or if decoding fails.
+ */
+export function extractEmbeddedTypeMetadata(sdJwtVC: JWT): TypeMetadata[] | null {
+  const parts = sdJwtVC.split(SD_JWT_FORMAT_SEPARATOR);
+  const jws = parts[0];
+
+  try {
+    const protectedHeader = decodeProtectedHeader(jws) as any;
+    if (protectedHeader?.vctm) {
+      const vctm = protectedHeader.vctm;
+      if (!Array.isArray(vctm)) {
+        throw new SDJWTVCError('vctm in unprotected header must be an array');
+      }
+      return vctm.map((doc: string) => JSON.parse(Buffer.from(doc, 'base64url').toString()) as TypeMetadata);
+    }
+  } catch (e: any) {
+    // If decoding the header fails, or if vctm processing fails, it implies no valid embedded metadata.
+    // We can treat this as 'not present' and return null, or re-throw if specific error handling is needed.
+    // For now, let's consider it not present if any error occurs during this process.
+    if (e instanceof SDJWTVCError) {
+      // re-throw our specific errors
+      throw e;
+    }
+    // Other errors (e.g., from decodeProtectedHeader for a malformed JWS) mean no valid vctm.
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Fetches and optionally verifies Type Metadata from a URL specified in the vct claim.
+ * @param sdJwtPayload The decoded SD-JWT payload.
+ * @param options Optional parameters, including a hasher for integrity checking.
+ * @returns A Promise that resolves to the TypeMetadata object, or null if not found or invalid.
+ * @throws An error if integrity check fails or if fetching/parsing encounters critical issues.
+ */
+export async function fetchTypeMetadataFromUrl(
+  sdJwtPayload: SDJWTPayload,
+  options?: { hasher?: SDJWTHasher },
+): Promise<TypeMetadata | null> {
+  const vct = sdJwtPayload.vct;
+
+  if (typeof vct !== 'string' || !vct.startsWith('https://') || !isValidUrl(vct)) {
+    // vct is not a string or not an HTTPS URL, so no metadata to fetch from here.
+    return null;
+  }
+
+  try {
+    const response = await fetch(vct);
+    if (!response.ok) {
+      console.warn(`Failed to fetch Type Metadata from ${vct}: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    const rawContent = await response.text();
+
+    const integrityClaimValue = sdJwtPayload['vct#integrity'] as string | undefined;
+
+    if (integrityClaimValue && options?.hasher) {
+      const calculatedHash = await Promise.resolve(options.hasher(rawContent));
+
+      let expectedHash = integrityClaimValue;
+      const parts = integrityClaimValue.split('-');
+      if (parts.length > 1) {
+        expectedHash = parts[parts.length - 1];
+      }
+
+      if (calculatedHash !== expectedHash) {
+        throw new SDJWTVCError(
+          `Type Metadata integrity check failed for ${vct}. Expected hash ${expectedHash} (derived from ${integrityClaimValue}), got ${calculatedHash}.`,
+        );
+      }
+    }
+
+    try {
+      const typeMetadata = JSON.parse(rawContent);
+      return typeMetadata as TypeMetadata;
+    } catch (parseError: any) {
+      console.warn(`Failed to parse Type Metadata from ${vct} as JSON: ${parseError.message}`);
+      return null;
+    }
+  } catch (error: any) {
+    if (error instanceof SDJWTVCError) {
+      throw error;
+    }
+    console.warn(`Error fetching Type Metadata from ${vct}: ${error.message}`);
+    return null;
   }
 }
