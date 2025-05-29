@@ -7,10 +7,18 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 
 ## 2.0.0 - 2025-XX-XX
 
+### Added
+
+- Support embedding Type Metadata documents in the JWS unprotected header via the `vctm` parameter, as per [SD-JWT VC Spec Section 6.3.5](https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-05.html#section-6.3.5).
+
 ### Changed
 
 - The `typ` header for issued SD-JWT VCs is now `dc+sd-jwt` as per [draft-08](https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#section-3.2.1)
 - The `Verifier` will accept both `vc+sd-jwt` and `dc+sd-jwt`.
+
+### Removed
+
+- Removed deprecated `createVCSDJWT` method from the `Issuer` class. Use `createSignedVCSDJWT` instead.
 
 ## 1.3.0 - 2024-10-07
 

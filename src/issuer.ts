@@ -1,14 +1,6 @@
-import { DisclosureFrame, JWTHeaderParameters, SDJWTPayload, SaltGenerator, issueSDJWT } from '@meeco/sd-jwt';
+import { DisclosureFrame, JWTHeaderParameters, SDJWTPayload, base64encode, issueSDJWT } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
-import {
-  CreateSDJWTPayload,
-  CreateSignedJWTOpts,
-  HasherConfig,
-  JWT,
-  ReservedJWTClaimKeys,
-  SignerConfig,
-  VCClaims,
-} from './types.js';
+import { CreateSignedJWTOpts, HasherConfig, JWT, ReservedJWTClaimKeys, SignerConfig, VCClaims } from './types.js';
 import { ValidTypValues, isValidUrl } from './util.js';
 
 export class Issuer {
@@ -43,31 +35,17 @@ export class Issuer {
   }
 
   /**
-   * Creates a VC SD-JWT.
-   * @deprecated This method will be removed in the next version. Use `createSignedVCSDJWT` instead.
-   * @param claims The VC claims.
-   * @param sdJWTPayload The SD-JWT payload.
-   * @param sdVCClaimsDisclosureFrame The SD-VC claims disclosure frame.
-   * @param saltGenerator The salt generator.
-   * @param sdJWTHeader additional header parameters
-   * @throws An error if the VC SD-JWT cannot be created.
-   * @returns The VC SD-JWT.
-   */
-  async createVCSDJWT(
-    vcClaims: VCClaims,
-    sdJWTPayload: CreateSDJWTPayload,
-    sdVCClaimsDisclosureFrame: DisclosureFrame = {},
-    saltGenerator?: SaltGenerator,
-    sdJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>,
-  ): Promise<JWT> {
-    return this.createSignedVCSDJWT({ vcClaims, sdJWTPayload, sdVCClaimsDisclosureFrame, saltGenerator, sdJWTHeader });
-  }
-
-  /**
    * Creates a signed SD-JWT VC.
    */
   async createSignedVCSDJWT(opts: CreateSignedJWTOpts): Promise<JWT> {
-    const { vcClaims, sdJWTPayload, sdVCClaimsDisclosureFrame = {}, saltGenerator, sdJWTHeader } = opts;
+    const {
+      vcClaims,
+      sdJWTPayload,
+      sdVCClaimsDisclosureFrame = {},
+      saltGenerator,
+      sdJWTHeader,
+      typeMetadataGlueDocuments,
+    } = opts;
     if (!vcClaims) throw new SDJWTVCError('vcClaims is required');
     if (!sdJWTPayload) throw new SDJWTVCError('sdJWTPayload is required');
 
@@ -75,25 +53,29 @@ export class Issuer {
     this.validateSDJWTPayload(sdJWTPayload);
     this.validateSDVCClaimsDisclosureFrame(sdVCClaimsDisclosureFrame);
 
+    const header: JWTHeaderParameters & { vctm?: string[] } = {
+      ...sdJWTHeader,
+      typ: Issuer.SD_JWT_TYP,
+      alg: this.signer.alg,
+    };
+
+    if (typeMetadataGlueDocuments && typeMetadataGlueDocuments.length > 0) {
+      header.vctm = typeMetadataGlueDocuments.map((doc) => {
+        const docString = typeof doc === 'string' ? doc : JSON.stringify(doc);
+        return base64encode(docString);
+      });
+    }
+
     try {
-      const jwt = await issueSDJWT(
-        {
-          ...sdJWTHeader,
-          typ: Issuer.SD_JWT_TYP,
-          alg: this.signer.alg,
+      const jwt = await issueSDJWT(header, { ...sdJWTPayload, ...vcClaims }, sdVCClaimsDisclosureFrame, {
+        signer: this.signer.callback,
+        hash: {
+          alg: this.hasher.alg,
+          callback: this.hasher.callback,
         },
-        { ...sdJWTPayload, ...vcClaims },
-        sdVCClaimsDisclosureFrame,
-        {
-          signer: this.signer.callback,
-          hash: {
-            alg: this.hasher.alg,
-            callback: this.hasher.callback,
-          },
-          cnf: sdJWTPayload?.cnf,
-          generateSalt: saltGenerator,
-        },
-      );
+        cnf: sdJWTPayload?.cnf,
+        generateSalt: saltGenerator,
+      });
 
       return jwt;
     } catch (error: any) {
