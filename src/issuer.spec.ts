@@ -69,7 +69,13 @@ describe('Issuer', () => {
       ],
     };
 
-    const VCSDJwt = await issuer.createVCSDJWT(vcClaims, payload, sdVCClaimsDisclosureFrame, undefined, sdVCHeader);
+    const VCSDJwt = await issuer.createSignedVCSDJWT({
+      vcClaims,
+      sdJWTPayload: payload,
+      sdVCClaimsDisclosureFrame,
+      saltGenerator: undefined,
+      sdJWTHeader: sdVCHeader,
+    });
 
     expect(VCSDJwt).toBeDefined();
     expect(typeof VCSDJwt).toBe('string');

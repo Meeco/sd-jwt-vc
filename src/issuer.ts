@@ -1,21 +1,6 @@
-import {
-  DisclosureFrame,
-  JWTHeaderParameters,
-  SDJWTPayload,
-  SaltGenerator,
-  base64encode,
-  issueSDJWT,
-} from '@meeco/sd-jwt';
+import { DisclosureFrame, JWTHeaderParameters, SDJWTPayload, base64encode, issueSDJWT } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
-import {
-  CreateSDJWTPayload,
-  CreateSignedJWTOpts,
-  HasherConfig,
-  JWT,
-  ReservedJWTClaimKeys,
-  SignerConfig,
-  VCClaims,
-} from './types.js';
+import { CreateSignedJWTOpts, HasherConfig, JWT, ReservedJWTClaimKeys, SignerConfig, VCClaims } from './types.js';
 import { ValidTypValues, isValidUrl } from './util.js';
 
 export class Issuer {
@@ -47,27 +32,6 @@ export class Issuer {
   }
   get getHasher() {
     return this.hasher;
-  }
-
-  /**
-   * Creates a VC SD-JWT.
-   * @deprecated This method will be removed in the next version. Use `createSignedVCSDJWT` instead.
-   * @param claims The VC claims.
-   * @param sdJWTPayload The SD-JWT payload.
-   * @param sdVCClaimsDisclosureFrame The SD-VC claims disclosure frame.
-   * @param saltGenerator The salt generator.
-   * @param sdJWTHeader additional header parameters
-   * @throws An error if the VC SD-JWT cannot be created.
-   * @returns The VC SD-JWT.
-   */
-  async createVCSDJWT(
-    vcClaims: VCClaims,
-    sdJWTPayload: CreateSDJWTPayload,
-    sdVCClaimsDisclosureFrame: DisclosureFrame = {},
-    saltGenerator?: SaltGenerator,
-    sdJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>,
-  ): Promise<JWT> {
-    return this.createSignedVCSDJWT({ vcClaims, sdJWTPayload, sdVCClaimsDisclosureFrame, saltGenerator, sdJWTHeader });
   }
 
   /**

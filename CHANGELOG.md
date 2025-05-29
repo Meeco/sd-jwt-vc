@@ -16,6 +16,10 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 - The `typ` header for issued SD-JWT VCs is now `dc+sd-jwt` as per [draft-08](https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#section-3.2.1)
 - The `Verifier` will accept both `vc+sd-jwt` and `dc+sd-jwt`.
 
+### Removed
+
+- Removed deprecated `createVCSDJWT` method from the `Issuer` class. Use `createSignedVCSDJWT` instead.
+
 ## 1.3.0 - 2024-10-07
 
 ### Security
