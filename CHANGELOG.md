@@ -9,8 +9,8 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 
 ### Added
 
-- Extracts and decodes Type Metadata documents embedded in the `vctm` unprotected header.
-- Fetches and optionally verifies Type Metadata from a URL specified in the `vct` claim.
+- Util function to extracts and decodes Type Metadata documents embedded in the `vctm` unprotected header.
+- Util function to fetche and optionally verifies Type Metadata from a URL specified in the `vct` claim.
 
 ### Changed
 
