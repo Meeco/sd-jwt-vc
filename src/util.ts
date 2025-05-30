@@ -195,7 +195,7 @@ export async function fetchTypeMetadataFromUrl(
   sdJwtPayload: SDJWTPayload,
   options?: { hasher?: SDJWTHasher; algorithmPrefixes?: string[] },
 ): Promise<TypeMetadata | null> {
-  const DEFAULT_ALGORITHM_PREFIXES = ['sha256-', 'sha512-'];
+  const DEFAULT_ALGORITHM_PREFIXES = ['sha256-', 'sha384-', 'sha512-']; // as per https://www.w3.org/TR/sri-2/#integrity-metadata-description
 
   const vct = sdJwtPayload.vct;
 

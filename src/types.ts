@@ -99,7 +99,14 @@ export interface TypeMetadata {
    * MUST NOT be used if schema is present.
    */
   schema_uri?: string;
+
+  /**
+   * OPTIONAL. integrity metadata for vct, extends, schema_uri, and similar URIs.
+   * Value MUST be an "integrity metadata" string per W3C.SRI.
+   */
   'schema_uri#integrity'?: string;
+  'vct#integrity'?: string;
+  'extends#integrity'?: string;
 
   [key: string]: any;
 }
