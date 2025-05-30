@@ -485,13 +485,14 @@ describe('fetchTypeMetadataFromUrl', () => {
   };
 
   const mockHasher: SDJWTHasher = jest.fn();
+  const mockHashAlgo = 'sha256';
 
   beforeEach(() => {
     jest.resetAllMocks();
     (global as any).fetch = jest.fn();
 
     (mockHasher as jest.Mock).mockImplementation((data: string): string => {
-      return crypto.createHash('sha256').update(data).digest('base64url');
+      return crypto.createHash(mockHashAlgo).update(data).digest('base64url');
     });
   });
 
@@ -529,7 +530,7 @@ describe('fetchTypeMetadataFromUrl', () => {
     expect(fetch).toHaveBeenCalledWith(vctUrl);
   });
 
-  it('should return null if fetching metadata fails (network error)', async () => {
+  it('should throw error if fetching metadata fails (network error)', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const payload = { ...mockPayloadBase, vct: vctUrl };
     (global as any).fetch.mockResolvedValueOnce({
@@ -538,12 +539,13 @@ describe('fetchTypeMetadataFromUrl', () => {
       statusText: 'Not Found',
     });
 
-    const result = await fetchTypeMetadataFromUrl(payload);
-    expect(result).toBeNull();
+    await expect(fetchTypeMetadataFromUrl(payload)).rejects.toThrow(
+      new SDJWTVCError(`Failed to fetch Type Metadata from ${vctUrl}: 404 Not Found`),
+    );
     expect(fetch).toHaveBeenCalledWith(vctUrl);
   });
 
-  it('should return null if fetched content is not valid JSON', async () => {
+  it('should throw error if fetched content is not valid JSON', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const payload = { ...mockPayloadBase, vct: vctUrl };
     (global as any).fetch.mockResolvedValueOnce({
@@ -551,16 +553,15 @@ describe('fetchTypeMetadataFromUrl', () => {
       text: () => Promise.resolve('this is not json'),
     });
 
-    const result = await fetchTypeMetadataFromUrl(payload);
-    expect(result).toBeNull();
+    await expect(fetchTypeMetadataFromUrl(payload)).rejects.toThrow(SDJWTVCError);
     expect(fetch).toHaveBeenCalledWith(vctUrl);
   });
 
   it('should perform integrity check if vct#integrity and hasher are provided', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const rawContent = JSON.stringify(mockTypeMetadata);
-    const contentHash = mockHasher(rawContent);
-    console.log(`Content hash for integrity check: ${contentHash}`);
+    const contentHash = mockHashAlgo + '-' + mockHasher(rawContent);
+
     const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': contentHash };
 
     (global as any).fetch.mockResolvedValueOnce({
@@ -578,9 +579,8 @@ describe('fetchTypeMetadataFromUrl', () => {
   it('should perform integrity check with algorithm prefix in vct#integrity', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const rawContent = JSON.stringify(mockTypeMetadata);
-    const contentHash = mockHasher(rawContent);
-    const integrityClaim = `sha256-${contentHash}`;
-    const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': integrityClaim };
+    const contentHash = mockHashAlgo + '-' + mockHasher(rawContent);
+    const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': contentHash };
 
     (global as any).fetch.mockResolvedValueOnce({
       ok: true,
@@ -599,7 +599,7 @@ describe('fetchTypeMetadataFromUrl', () => {
     const rawContent = JSON.stringify(mockTypeMetadata);
     // mockHasher will produce a specific hash for rawContent.
     // wrongHash is different, so the check should fail.
-    const wrongHash = 'totally-different-hash-value';
+    const wrongHash = 'sha265-totally-different-hash-value';
     const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': wrongHash };
 
     (global as any).fetch.mockResolvedValueOnce({
@@ -636,7 +636,7 @@ describe('fetchTypeMetadataFromUrl', () => {
   it('should not perform integrity check if hasher is not provided, even if vct#integrity is present', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const rawContent = JSON.stringify(mockTypeMetadata);
-    const contentHash = mockHasher(rawContent);
+    const contentHash = mockHashAlgo + '-' + mockHasher(rawContent);
     const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': contentHash };
 
     (global as any).fetch.mockResolvedValueOnce({
@@ -688,72 +688,23 @@ describe('fetchTypeMetadataFromUrl', () => {
     );
   });
 
-  it('should return null and warn for general errors during fetch operation', async () => {
+  it('should throw error for general errors during fetch operation', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const payload = { ...mockPayloadBase, vct: vctUrl };
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     (global as any).fetch.mockRejectedValueOnce(new Error('Network failure'));
 
-    const result = await fetchTypeMetadataFromUrl(payload);
-    expect(result).toBeNull();
-    expect(fetch).toHaveBeenCalledWith(vctUrl);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`Error fetching Type Metadata from ${vctUrl}: Network failure`),
+    await expect(fetchTypeMetadataFromUrl(payload)).rejects.toThrow(
+      new SDJWTVCError(`Error fetching Type Metadata from ${vctUrl}: Network failure`),
     );
-    consoleWarnSpy.mockRestore();
-  });
-
-  it('should use custom algorithm prefixes when provided', async () => {
-    const vctUrl = 'https://example.com/metadata.json';
-    const rawContent = JSON.stringify(mockTypeMetadata);
-    const contentHash = mockHasher(rawContent);
-    const customPrefix = 'blake2b-';
-    const integrityClaim = `${customPrefix}${contentHash}`;
-    const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': integrityClaim };
-
-    (global as any).fetch.mockResolvedValueOnce({
-      ok: true,
-      text: () => Promise.resolve(rawContent),
-    });
-    (mockHasher as jest.Mock).mockClear();
-
-    const result = await fetchTypeMetadataFromUrl(payload, {
-      hasher: mockHasher,
-      algorithmPrefixes: [customPrefix, 'sha256-', 'sha384-'],
-    });
-
-    expect(result).toEqual(mockTypeMetadata);
-    expect(mockHasher).toHaveBeenCalledWith(rawContent);
     expect(fetch).toHaveBeenCalledWith(vctUrl);
   });
 
-  it('should fallback to default algorithm prefixes when custom prefixes are not provided', async () => {
+  it('should throw error if vct#integrity has an invalid algorithm prefix', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const rawContent = JSON.stringify(mockTypeMetadata);
-    const contentHash = mockHasher(rawContent);
-    const integrityClaim = `sha512-${contentHash}`; // using default prefix
-    const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': integrityClaim };
-
-    (global as any).fetch.mockResolvedValueOnce({
-      ok: true,
-      text: () => Promise.resolve(rawContent),
-    });
-    (mockHasher as jest.Mock).mockClear();
-
-    const result = await fetchTypeMetadataFromUrl(payload, { hasher: mockHasher });
-
-    expect(result).toEqual(mockTypeMetadata);
-    expect(mockHasher).toHaveBeenCalledWith(rawContent);
-    expect(fetch).toHaveBeenCalledWith(vctUrl);
-  });
-
-  it('should not strip prefix if it is not in the configured algorithm prefixes', async () => {
-    const vctUrl = 'https://example.com/metadata.json';
-    const rawContent = JSON.stringify(mockTypeMetadata);
-    const calculatedHash = mockHasher(rawContent);
     const unknownPrefix = 'unknown-';
-    const integrityClaimWithUnknownPrefix = `${unknownPrefix}${calculatedHash}`;
+    const integrityClaimWithUnknownPrefix = `${unknownPrefix}calculated-hash`;
     const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': integrityClaimWithUnknownPrefix };
 
     (global as any).fetch.mockResolvedValueOnce({
@@ -762,16 +713,13 @@ describe('fetchTypeMetadataFromUrl', () => {
     });
     (mockHasher as jest.Mock).mockClear();
 
-    // This should fail because the unknown prefix won't be stripped,
-    // so expectedHash will be 'unknown-<hash>' but calculatedHash will be '<hash>'
-    await expect(
-      fetchTypeMetadataFromUrl(payload, {
-        hasher: mockHasher,
-        algorithmPrefixes: ['sha256-', 'sha384-', 'sha512-'], // unknown- not included
-      }),
-    ).rejects.toThrow(SDJWTVCError);
+    await expect(fetchTypeMetadataFromUrl(payload, { hasher: mockHasher })).rejects.toThrow(
+      new SDJWTVCError(
+        `Invalid algorithm prefix in vct#integrity claim: ${integrityClaimWithUnknownPrefix}. Expected one of: sha256-, sha384-, sha512-`,
+      ),
+    );
 
-    expect(mockHasher).toHaveBeenCalledWith(rawContent);
+    expect(mockHasher).toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledWith(vctUrl);
   });
 });

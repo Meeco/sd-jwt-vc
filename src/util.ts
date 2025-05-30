@@ -187,13 +187,13 @@ export function extractEmbeddedTypeMetadata(sdJwtVC: JWT): TypeMetadata[] | null
 /**
  * Fetches and optionally verifies Type Metadata from a URL specified in the vct claim.
  * @param sdJwtPayload The decoded SD-JWT payload.
- * @param options Optional parameters, including a hasher for integrity checking and algorithm prefixes.
+ * @param options Optional parameters, including a hasher for integrity checking.
  * @returns A Promise that resolves to the TypeMetadata object, or null if not found or invalid.
  * @throws An error if integrity check fails or if fetching/parsing encounters critical issues.
  */
 export async function fetchTypeMetadataFromUrl(
   sdJwtPayload: SDJWTPayload,
-  options?: { hasher?: SDJWTHasher; algorithmPrefixes?: string[] },
+  options?: { hasher?: SDJWTHasher },
 ): Promise<TypeMetadata | null> {
   const DEFAULT_ALGORITHM_PREFIXES = ['sha256-', 'sha384-', 'sha512-']; // as per https://www.w3.org/TR/sri-2/#integrity-metadata-description
 
@@ -207,8 +207,7 @@ export async function fetchTypeMetadataFromUrl(
   try {
     const response = await fetch(vct);
     if (!response.ok) {
-      console.warn(`Failed to fetch Type Metadata from ${vct}: ${response.status} ${response.statusText}`);
-      return null;
+      throw new SDJWTVCError(`Failed to fetch Type Metadata from ${vct}: ${response.status} ${response.statusText}`);
     }
 
     const rawContent = await response.text();
@@ -222,12 +221,20 @@ export async function fetchTypeMetadataFromUrl(
       let expectedHash = integrityClaimValue;
 
       // Check for known algorithm prefixes
-      const algorithmPrefixes = options?.algorithmPrefixes || DEFAULT_ALGORITHM_PREFIXES;
+      const algorithmPrefixes = DEFAULT_ALGORITHM_PREFIXES;
+      let foundPrefix = false;
       for (const prefix of algorithmPrefixes) {
         if (integrityClaimValue.startsWith(prefix)) {
           expectedHash = integrityClaimValue.substring(prefix.length);
+          foundPrefix = true;
           break;
         }
+      }
+
+      if (!foundPrefix) {
+        throw new SDJWTVCError(
+          `Invalid algorithm prefix in vct#integrity claim: ${integrityClaimValue}. Expected one of: ${algorithmPrefixes.join(', ')}`,
+        );
       }
 
       if (calculatedHash !== expectedHash) {
@@ -241,14 +248,12 @@ export async function fetchTypeMetadataFromUrl(
       const typeMetadata = JSON.parse(rawContent);
       return typeMetadata as TypeMetadata;
     } catch (parseError: any) {
-      console.warn(`Failed to parse Type Metadata from ${vct} as JSON: ${parseError.message}`);
-      return null;
+      throw new SDJWTVCError(`Failed to parse Type Metadata from ${vct} as JSON: ${parseError.message}`);
     }
   } catch (error: any) {
     if (error instanceof SDJWTVCError) {
       throw error;
     }
-    console.warn(`Error fetching Type Metadata from ${vct}: ${error.message}`);
-    return null;
+    throw new SDJWTVCError(`Error fetching Type Metadata from ${vct}: ${error.message}`);
   }
 }
