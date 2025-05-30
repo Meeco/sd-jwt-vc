@@ -9,8 +9,8 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 
 ### Added
 
-- Util function to extracts and decodes Type Metadata documents embedded in the `vctm` unprotected header.
-- Util function to fetche and optionally verifies Type Metadata from a URL specified in the `vct` claim.
+- `extractEmbeddedTypeMetadata()` utility function to extract and decode Type Metadata documents embedded in the `vctm` unprotected header of SD-JWT VCs
+- `fetchTypeMetadataFromUrl()` utility function to fetch and optionally verify Type Metadata from URLs specified in the `vct` claim, with integrity validation support
 
 ### Changed
 
