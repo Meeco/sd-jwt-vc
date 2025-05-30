@@ -1,4 +1,4 @@
-import { decodeJWT, JWK, Hasher as SDJWTHasher, SDJWTPayload } from '@meeco/sd-jwt';
+import { base64decode, decodeJWT, JWK, Hasher as SDJWTHasher, SDJWTPayload } from '@meeco/sd-jwt';
 import { decodeProtectedHeader } from 'jose';
 import { SDJWTVCError } from './errors.js';
 import { JWT, SD_JWT_FORMAT_SEPARATOR, TypeMetadata } from './types.js';
@@ -145,47 +145,58 @@ export function getIssuerPublicKeyJWK(jwks: any, kid?: string): JWK | undefined 
  * Extracts and decodes Type Metadata documents embedded in the vctm unprotected header of an SD-JWT VC.
  * @param sdJwtVC The SD-JWT VC string.
  * @returns An array of TypeMetadata objects, or null if not present.
- * @throws An error if the vctm header is present but not an array, or if decoding fails.
+ * @throws An error if the vctm header is present but invalid, or if decoding fails.
  */
 export function extractEmbeddedTypeMetadata(sdJwtVC: JWT): TypeMetadata[] | null {
   const parts = sdJwtVC.split(SD_JWT_FORMAT_SEPARATOR);
   const jws = parts[0];
 
   try {
-    const protectedHeader = decodeProtectedHeader(jws) as any;
-    if (protectedHeader?.vctm) {
-      const vctm = protectedHeader.vctm;
-      if (!Array.isArray(vctm)) {
-        throw new SDJWTVCError('vctm in unprotected header must be an array');
-      }
-      return vctm.map((doc: string) => JSON.parse(Buffer.from(doc, 'base64url').toString()) as TypeMetadata);
+    const protectedHeader = decodeProtectedHeader(jws);
+
+    // Check if header is valid and has vctm
+    if (!protectedHeader || typeof protectedHeader !== 'object') {
+      return null;
     }
+
+    const vctm = (protectedHeader as any).vctm;
+    if (!vctm) {
+      return null;
+    }
+
+    if (!Array.isArray(vctm)) {
+      throw new SDJWTVCError('vctm in unprotected header must be an array');
+    }
+
+    return vctm.map((doc: string) => {
+      try {
+        return JSON.parse(base64decode(doc)) as TypeMetadata;
+      } catch (_: any) {
+        throw new SDJWTVCError(`Failed to decode base64url vctm entry: ${doc}. Error: Invalid base64url string`);
+      }
+    });
   } catch (e: any) {
-    // If decoding the header fails, or if vctm processing fails, it implies no valid embedded metadata.
-    // We can treat this as 'not present' and return null, or re-throw if specific error handling is needed.
-    // For now, let's consider it not present if any error occurs during this process.
+    // Re-throw specific errors, treat other errors as 'not present'
     if (e instanceof SDJWTVCError) {
-      // re-throw our specific errors
       throw e;
     }
-    // Other errors (e.g., from decodeProtectedHeader for a malformed JWS) mean no valid vctm.
     return null;
   }
-
-  return null;
 }
 
 /**
  * Fetches and optionally verifies Type Metadata from a URL specified in the vct claim.
  * @param sdJwtPayload The decoded SD-JWT payload.
- * @param options Optional parameters, including a hasher for integrity checking.
+ * @param options Optional parameters, including a hasher for integrity checking and algorithm prefixes.
  * @returns A Promise that resolves to the TypeMetadata object, or null if not found or invalid.
  * @throws An error if integrity check fails or if fetching/parsing encounters critical issues.
  */
 export async function fetchTypeMetadataFromUrl(
   sdJwtPayload: SDJWTPayload,
-  options?: { hasher?: SDJWTHasher },
+  options?: { hasher?: SDJWTHasher; algorithmPrefixes?: string[] },
 ): Promise<TypeMetadata | null> {
+  const DEFAULT_ALGORITHM_PREFIXES = ['sha256-', 'sha512-'];
+
   const vct = sdJwtPayload.vct;
 
   if (typeof vct !== 'string' || !vct.startsWith('https://') || !isValidUrl(vct)) {
@@ -207,10 +218,16 @@ export async function fetchTypeMetadataFromUrl(
     if (integrityClaimValue && options?.hasher) {
       const calculatedHash = await Promise.resolve(options.hasher(rawContent));
 
+      // Extract hash from integrity claim, handling algorithm prefixes properly
       let expectedHash = integrityClaimValue;
-      const parts = integrityClaimValue.split('-');
-      if (parts.length > 1) {
-        expectedHash = parts[parts.length - 1];
+
+      // Check for known algorithm prefixes
+      const algorithmPrefixes = options?.algorithmPrefixes || DEFAULT_ALGORITHM_PREFIXES;
+      for (const prefix of algorithmPrefixes) {
+        if (integrityClaimValue.startsWith(prefix)) {
+          expectedHash = integrityClaimValue.substring(prefix.length);
+          break;
+        }
       }
 
       if (calculatedHash !== expectedHash) {

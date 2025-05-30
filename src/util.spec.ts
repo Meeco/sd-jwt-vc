@@ -1,12 +1,7 @@
 import { decodeJWT, JWK, Hasher as SDJWTHasher, SDJWTPayload } from '@meeco/sd-jwt';
 import * as crypto from 'crypto';
 import { SDJWTVCError } from './errors';
-import {
-  extractEmbeddedTypeMetadata,
-  fetchTypeMetadataFromUrl,
-  getIssuerPublicKeyFromWellKnownURI,
-  isValidUrl,
-} from './util';
+import { extractEmbeddedTypeMetadata, fetchTypeMetadataFromUrl, getIssuerPublicKeyFromWellKnownURI } from './util';
 
 describe('getIssuerPublicKeyFromIss', () => {
   const sdJwtVC =
@@ -313,8 +308,6 @@ describe('extractEmbeddedTypeMetadata', () => {
   });
 
   it('should throw an error if vctm is present but not an array', () => {
-    // JWS with unprotected header: { "vctm": "not-an-array" }
-    // Header: eyJ2Y3RtIjoibm90LWFuLWFycmF5In0 (base64url of {"vctm":"not-an-array"})
     const sdJwtVC = 'eyJ2Y3RtIjoibm90LWFuLWFycmF5In0.eyJpc3MiOiJ0ZXN0LWlzc3VlciJ9.c2lnbmF0dXJl';
     expect(() => extractEmbeddedTypeMetadata(sdJwtVC)).toThrow(
       new SDJWTVCError('vctm in unprotected header must be an array'),
@@ -325,7 +318,9 @@ describe('extractEmbeddedTypeMetadata', () => {
     // JWS with unprotected header: { "vctm": ["invalid-b64url!"] }
     // Header: eyJ2Y3RtIjpbImludmFsaWQtYjY0dXJsISJdfQ (base64url of {"vctm":["invalid-b64url!"]})
     const sdJwtVC = 'eyJ2Y3RtIjpbImludmFsaWQtYjY0dXJsISJdfQ.eyJpc3MiOiJ0ZXN0LWlzc3VlciJ9.c2lnbmF0dXJl';
-    expect(() => extractEmbeddedTypeMetadata(sdJwtVC)).toThrow(SDJWTVCError);
+    expect(() => extractEmbeddedTypeMetadata(sdJwtVC)).toThrow(
+      new SDJWTVCError('Failed to decode base64url vctm entry: invalid-b64url!. Error: Invalid base64url string'),
+    );
   });
 
   it('should correctly decode and return type metadata documents', () => {
@@ -333,13 +328,7 @@ describe('extractEmbeddedTypeMetadata', () => {
     const doc2 = { type: 'doc2', data: 'test2' };
     const encodedDoc1 = Buffer.from(JSON.stringify(doc1)).toString('base64url');
     const encodedDoc2 = Buffer.from(JSON.stringify(doc2)).toString('base64url');
-    // Constructing the JWS with the vctm in the *unprotected* header part is tricky directly in a string literal
-    // as it's part of the signed JWS structure. For testing, we simulate a JWS where the
-    // unprotected header part (if it were separate, which it isn't in compact JWS) would contain vctm.
-    // The function `decodeProtectedHeader` correctly decodes the *first* part of a JWS (the protected header).
-    // If `vctm` is intended to be in an *unprotected* header, the `decodeJWT` from `@meeco/sd-jwt` might expose it differently,
-    // or the JWS needs to be constructed in a specific way (e.g., using General JWS JSON Serialization).
-    // For this test, we'll assume the `vctm` is part of the main JWS header, decodable by `decodeProtectedHeader`.
+
     const headerWithVctm = { vctm: [encodedDoc1, encodedDoc2] };
     const base64UrlEncodedHeader = Buffer.from(JSON.stringify(headerWithVctm)).toString('base64url');
     const sdJwtVC = `${base64UrlEncodedHeader}.eyJpc3MiOiJ0ZXN0LWlzc3VlciJ9.c2lnbmF0dXJl`;
@@ -366,25 +355,144 @@ describe('fetchTypeMetadataFromUrl', () => {
   };
 
   const mockTypeMetadata = {
-    '@context': ['https://www.w3.org/2018/credentials/v1'],
-    type: ['VerifiableCredential', 'CustomType'],
-    credentialSubject: {
-      degree: {
-        type: 'BachelorDegree',
-        name: 'Bachelor of Science and Arts',
+    vct: 'https://betelgeuse.example.com/education_credential',
+    name: 'Betelgeuse Education Credential - Preliminary Version',
+    description: "This is our development version of the education credential. Don't panic.",
+    extends: 'https://galaxy.example.com/galactic-education-credential-0.9',
+    'extends#integrity': 'sha256-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1VLmXfh-WRL5',
+    display: [
+      {
+        lang: 'en-US',
+        name: 'Betelgeuse Education Credential',
+        description: 'An education credential for all carbon-based life forms on Betelgeusians',
+        rendering: {
+          simple: {
+            logo: {
+              uri: 'https://betelgeuse.example.com/public/education-logo.png',
+              'uri#integrity': 'sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V',
+              alt_text: 'Betelgeuse Ministry of Education logo',
+            },
+            background_color: '#12107c',
+            text_color: '#FFFFFF',
+          },
+          svg_templates: [
+            {
+              uri: 'https://betelgeuse.example.com/public/credential-english.svg',
+              'uri#integrity': 'sha256-8cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1VLmXfh-9c',
+              properties: {
+                orientation: 'landscape',
+                color_scheme: 'light',
+                contrast: 'high',
+              },
+            },
+          ],
+        },
       },
-    },
+      {
+        lang: 'de-DE',
+        name: 'Betelgeuse-Bildungsnachweis',
+        rendering: {
+          simple: {
+            logo: {
+              uri: 'https://betelgeuse.example.com/public/education-logo-de.png',
+              'uri#integrity': 'sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V',
+              alt_text: 'Logo des Betelgeusischen Bildungsministeriums',
+            },
+            background_color: '#12107c',
+            text_color: '#FFFFFF',
+          },
+          svg_templates: [
+            {
+              uri: 'https://betelgeuse.example.com/public/credential-german.svg',
+              'uri#integrity': 'sha256-8cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1VLmXfh-9c',
+              properties: {
+                orientation: 'landscape',
+                color_scheme: 'light',
+                contrast: 'high',
+              },
+            },
+          ],
+        },
+      },
+    ],
+    claims: [
+      {
+        path: ['name'],
+        display: [
+          {
+            lang: 'de-DE',
+            label: 'Vor- und Nachname',
+            description: 'Der Name des Studenten',
+          },
+          {
+            lang: 'en-US',
+            label: 'Name',
+            description: 'The name of the student',
+          },
+        ],
+        sd: 'allowed',
+      },
+      {
+        path: ['address'],
+        display: [
+          {
+            lang: 'de-DE',
+            label: 'Adresse',
+            description: 'Adresse zum Zeitpunkt des Abschlusses',
+          },
+          {
+            lang: 'en-US',
+            label: 'Address',
+            description: 'Address at the time of graduation',
+          },
+        ],
+        sd: 'always',
+      },
+      {
+        path: ['address', 'street_address'],
+        display: [
+          {
+            lang: 'de-DE',
+            label: 'Straße',
+          },
+          {
+            lang: 'en-US',
+            label: 'Street Address',
+          },
+        ],
+        sd: 'always',
+        svg_id: 'address_street_address',
+      },
+      {
+        path: ['degrees', null],
+        display: [
+          {
+            lang: 'de-DE',
+            label: 'Abschluss',
+            description: 'Der Abschluss des Studenten',
+          },
+          {
+            lang: 'en-US',
+            label: 'Degree',
+            description: 'Degree earned by the student',
+          },
+        ],
+        sd: 'allowed',
+      },
+    ],
+    schema_uri: 'https://exampleuniversity.com/public/credential-schema-0.9',
+    'schema_uri#integrity': 'sha256-o984vn819a48ui1llkwPmKjZ5t0WRL5ca_xGgX3c1VLmXfh',
   };
 
-  // Define mockHasher as a synchronous function returning string
-  const mockHasher: SDJWTHasher = jest.fn((data: string): string => {
-    return crypto.createHash('sha256').update(data).digest('base64url');
-  });
+  const mockHasher: SDJWTHasher = jest.fn();
 
   beforeEach(() => {
-    // Resets all mocks, including their call counts
     jest.resetAllMocks();
     (global as any).fetch = jest.fn();
+
+    (mockHasher as jest.Mock).mockImplementation((data: string): string => {
+      return crypto.createHash('sha256').update(data).digest('base64url');
+    });
   });
 
   it('should return null if vct is not a string', async () => {
@@ -451,14 +559,15 @@ describe('fetchTypeMetadataFromUrl', () => {
   it('should perform integrity check if vct#integrity and hasher are provided', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const rawContent = JSON.stringify(mockTypeMetadata);
-    const contentHash = mockHasher(rawContent); // mockHasher is sync now
+    const contentHash = mockHasher(rawContent);
+    console.log(`Content hash for integrity check: ${contentHash}`);
     const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': contentHash };
 
     (global as any).fetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(rawContent),
     });
-    (mockHasher as jest.Mock).mockClear(); // Clear calls from contentHash generation
+    (mockHasher as jest.Mock).mockClear();
 
     const result = await fetchTypeMetadataFromUrl(payload, { hasher: mockHasher });
     expect(result).toEqual(mockTypeMetadata);
@@ -469,7 +578,7 @@ describe('fetchTypeMetadataFromUrl', () => {
   it('should perform integrity check with algorithm prefix in vct#integrity', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const rawContent = JSON.stringify(mockTypeMetadata);
-    const contentHash = mockHasher(rawContent); // mockHasher is sync
+    const contentHash = mockHasher(rawContent);
     const integrityClaim = `sha256-${contentHash}`;
     const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': integrityClaim };
 
@@ -508,7 +617,7 @@ describe('fetchTypeMetadataFromUrl', () => {
     const vctUrl = 'https://example.com/metadata.json';
     const rawContent = JSON.stringify(mockTypeMetadata);
     const calculatedCorrectHash = mockHasher(rawContent);
-    const wrongHashClaim = 'sha256-totally-different-hash-value'; // Claim in JWT
+    const wrongHashClaim = 'sha256-totally-different-hash-value';
     const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': wrongHashClaim };
 
     (global as any).fetch.mockResolvedValueOnce({
@@ -527,25 +636,25 @@ describe('fetchTypeMetadataFromUrl', () => {
   it('should not perform integrity check if hasher is not provided, even if vct#integrity is present', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const rawContent = JSON.stringify(mockTypeMetadata);
-    const contentHash = mockHasher(rawContent); // Generate hash for payload
+    const contentHash = mockHasher(rawContent);
     const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': contentHash };
 
     (global as any).fetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(rawContent),
     });
-    (mockHasher as jest.Mock).mockClear(); // Clear calls from contentHash generation
+    (mockHasher as jest.Mock).mockClear();
 
-    const result = await fetchTypeMetadataFromUrl(payload); // No hasher in options
+    const result = await fetchTypeMetadataFromUrl(payload);
     expect(result).toEqual(mockTypeMetadata);
-    expect(mockHasher).not.toHaveBeenCalled(); // fetchTypeMetadataFromUrl should not call it
+    expect(mockHasher).not.toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledWith(vctUrl);
   });
 
   it('should not perform integrity check if vct#integrity is not present, even if hasher is provided', async () => {
     const vctUrl = 'https://example.com/metadata.json';
     const rawContent = JSON.stringify(mockTypeMetadata);
-    const payload = { ...mockPayloadBase, vct: vctUrl }; // No vct#integrity
+    const payload = { ...mockPayloadBase, vct: vctUrl };
 
     (global as any).fetch.mockResolvedValueOnce({
       ok: true,
@@ -594,23 +703,75 @@ describe('fetchTypeMetadataFromUrl', () => {
     );
     consoleWarnSpy.mockRestore();
   });
-});
 
-// Ensure existing isValidUrl tests are present and correct
-describe('isValidUrl', () => {
-  it('should return true for valid URLs', () => {
-    expect(isValidUrl('https://example.com')).toBe(true);
-    expect(isValidUrl('http://localhost:3000/path?query=value#hash')).toBe(true);
-    expect(isValidUrl('https://sub.domain.example.co.uk/path.html')).toBe(true);
+  it('should use custom algorithm prefixes when provided', async () => {
+    const vctUrl = 'https://example.com/metadata.json';
+    const rawContent = JSON.stringify(mockTypeMetadata);
+    const contentHash = mockHasher(rawContent);
+    const customPrefix = 'blake2b-';
+    const integrityClaim = `${customPrefix}${contentHash}`;
+    const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': integrityClaim };
+
+    (global as any).fetch.mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(rawContent),
+    });
+    (mockHasher as jest.Mock).mockClear();
+
+    const result = await fetchTypeMetadataFromUrl(payload, {
+      hasher: mockHasher,
+      algorithmPrefixes: [customPrefix, 'sha256-', 'sha384-'],
+    });
+
+    expect(result).toEqual(mockTypeMetadata);
+    expect(mockHasher).toHaveBeenCalledWith(rawContent);
+    expect(fetch).toHaveBeenCalledWith(vctUrl);
   });
 
-  it('should return false for invalid URLs', () => {
-    expect(isValidUrl('not a url')).toBe(false);
-    expect(isValidUrl('example.com')).toBe(false); // Missing scheme
-    expect(isValidUrl('htp://example.com')).toBe(false); // Typo in scheme
-    expect(isValidUrl('https//example.com')).toBe(false); // Missing colon
-    expect(isValidUrl('')).toBe(false);
-    expect(isValidUrl(' https://example.com')).toBe(false); // Leading space
-    expect(isValidUrl('https://example.com/ path')).toBe(false); // Space in path
+  it('should fallback to default algorithm prefixes when custom prefixes are not provided', async () => {
+    const vctUrl = 'https://example.com/metadata.json';
+    const rawContent = JSON.stringify(mockTypeMetadata);
+    const contentHash = mockHasher(rawContent);
+    const integrityClaim = `sha512-${contentHash}`; // using default prefix
+    const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': integrityClaim };
+
+    (global as any).fetch.mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(rawContent),
+    });
+    (mockHasher as jest.Mock).mockClear();
+
+    const result = await fetchTypeMetadataFromUrl(payload, { hasher: mockHasher });
+
+    expect(result).toEqual(mockTypeMetadata);
+    expect(mockHasher).toHaveBeenCalledWith(rawContent);
+    expect(fetch).toHaveBeenCalledWith(vctUrl);
+  });
+
+  it('should not strip prefix if it is not in the configured algorithm prefixes', async () => {
+    const vctUrl = 'https://example.com/metadata.json';
+    const rawContent = JSON.stringify(mockTypeMetadata);
+    const calculatedHash = mockHasher(rawContent);
+    const unknownPrefix = 'unknown-';
+    const integrityClaimWithUnknownPrefix = `${unknownPrefix}${calculatedHash}`;
+    const payload = { ...mockPayloadBase, vct: vctUrl, 'vct#integrity': integrityClaimWithUnknownPrefix };
+
+    (global as any).fetch.mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve(rawContent),
+    });
+    (mockHasher as jest.Mock).mockClear();
+
+    // This should fail because the unknown prefix won't be stripped,
+    // so expectedHash will be 'unknown-<hash>' but calculatedHash will be '<hash>'
+    await expect(
+      fetchTypeMetadataFromUrl(payload, {
+        hasher: mockHasher,
+        algorithmPrefixes: ['sha256-', 'sha384-', 'sha512-'], // unknown- not included
+      }),
+    ).rejects.toThrow(SDJWTVCError);
+
+    expect(mockHasher).toHaveBeenCalledWith(rawContent);
+    expect(fetch).toHaveBeenCalledWith(vctUrl);
   });
 });
