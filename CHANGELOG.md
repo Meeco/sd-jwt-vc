@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.0.0 - 2025-XX-XX
+## 2.0.0 - 2025-05-28
+
+### Added
+
+- `extractEmbeddedTypeMetadata()` utility function to extract and decode Type Metadata documents embedded in the `vctm` unprotected header of SD-JWT VCs
+- `fetchTypeMetadataFromUrl()` utility function to fetch and optionally verify Type Metadata from URLs specified in the `vct` claim, with integrity validation support
 
 ### Added
 

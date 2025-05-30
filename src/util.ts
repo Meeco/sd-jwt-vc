@@ -1,6 +1,7 @@
-import { JWK, decodeJWT } from '@meeco/sd-jwt';
+import { base64decode, decodeJWT, JWK, Hasher as SDJWTHasher, SDJWTPayload } from '@meeco/sd-jwt';
+import { decodeProtectedHeader } from 'jose';
 import { SDJWTVCError } from './errors.js';
-import { JWT, SD_JWT_FORMAT_SEPARATOR } from './types.js';
+import { JWT, SD_JWT_FORMAT_SEPARATOR, TypeMetadata } from './types.js';
 
 export enum ValidTypValues {
   VCSDJWT = 'vc+sd-jwt',
@@ -137,5 +138,113 @@ export function getIssuerPublicKeyJWK(jwks: any, kid?: string): JWK | undefined 
     return jwks.keys.find((key: any) => key.kid === kid);
   } else {
     return jwks.keys[0];
+  }
+}
+
+/**
+ * Extracts and decodes Type Metadata documents embedded in the vctm unprotected header of an SD-JWT VC.
+ * @param sdJwtVC The SD-JWT VC string.
+ * @returns An array of TypeMetadata objects, or null if not present.
+ * @throws An error if the vctm header is present but invalid, or if decoding fails.
+ */
+export function extractEmbeddedTypeMetadata(sdJwtVC: JWT): TypeMetadata[] | null {
+  const parts = sdJwtVC.split(SD_JWT_FORMAT_SEPARATOR);
+  const jws = parts[0];
+
+  try {
+    const protectedHeader = decodeProtectedHeader(jws);
+
+    // Check if header is valid and has vctm
+    if (!protectedHeader || typeof protectedHeader !== 'object') {
+      return null;
+    }
+
+    const vctm = (protectedHeader as any).vctm;
+    if (!vctm) {
+      return null;
+    }
+
+    if (!Array.isArray(vctm)) {
+      throw new SDJWTVCError('vctm in unprotected header must be an array');
+    }
+
+    return vctm.map((doc: string) => {
+      try {
+        return JSON.parse(base64decode(doc)) as TypeMetadata;
+      } catch (_: any) {
+        throw new SDJWTVCError(`Failed to decode base64url vctm entry: ${doc}. Error: Invalid base64url string`);
+      }
+    });
+  } catch (e: any) {
+    // Re-throw specific errors, treat other errors as 'not present'
+    if (e instanceof SDJWTVCError) {
+      throw e;
+    }
+    return null;
+  }
+}
+
+/**
+ * Fetches and optionally verifies Type Metadata from a URL specified in the vct claim.
+ * @param sdJwtPayload The decoded SD-JWT payload.
+ * @param options Optional parameters, including a hasher for integrity checking.
+ * @returns A Promise that resolves to the TypeMetadata object, or null if not found or invalid.
+ * @throws An error if integrity check fails or if fetching/parsing encounters critical issues.
+ */
+export async function fetchTypeMetadataFromUrl(
+  sdJwtPayload: SDJWTPayload,
+  options?: { hasher?: SDJWTHasher },
+): Promise<TypeMetadata | null> {
+  const DEFAULT_ALGORITHM_PREFIXES = ['sha256-', 'sha384-', 'sha512-']; // as per https://www.w3.org/TR/sri-2/#integrity-metadata-description
+
+  const vct = sdJwtPayload.vct;
+
+  if (typeof vct !== 'string' || !vct.startsWith('https://') || !isValidUrl(vct)) {
+    // vct is not a string or not an HTTPS URL, so no metadata to fetch from here.
+    return null;
+  }
+
+  try {
+    const response = await fetch(vct);
+    if (!response.ok) {
+      throw new SDJWTVCError(`Failed to fetch Type Metadata from ${vct}: ${response.status} ${response.statusText}`);
+    }
+
+    const rawContent = await response.text();
+
+    const integrityClaimValue = sdJwtPayload['vct#integrity'] as string | undefined;
+
+    if (integrityClaimValue && options?.hasher) {
+      const calculatedHash = await Promise.resolve(options.hasher(rawContent));
+
+      // Extract hash from integrity claim, handling algorithm prefixes properly
+      const matchingPrefix = DEFAULT_ALGORITHM_PREFIXES.find((prefix) => integrityClaimValue.startsWith(prefix));
+
+      if (!matchingPrefix) {
+        throw new SDJWTVCError(
+          `Invalid algorithm prefix in vct#integrity claim: ${integrityClaimValue}. Expected one of: ${DEFAULT_ALGORITHM_PREFIXES.join(', ')}`,
+        );
+      }
+
+      const expectedHash = integrityClaimValue.substring(matchingPrefix.length);
+
+      if (calculatedHash !== expectedHash) {
+        throw new SDJWTVCError(
+          `Type Metadata integrity check failed for ${vct}. Expected hash ${expectedHash} (derived from ${integrityClaimValue}), got ${calculatedHash}.`,
+        );
+      }
+    }
+
+    try {
+      const typeMetadata = JSON.parse(rawContent);
+      return typeMetadata as TypeMetadata;
+    } catch (parseError: any) {
+      throw new SDJWTVCError(`Failed to parse Type Metadata from ${vct} as JSON: ${parseError.message}`);
+    }
+  } catch (error: any) {
+    if (error instanceof SDJWTVCError) {
+      throw error;
+    }
+    throw new SDJWTVCError(`Error fetching Type Metadata from ${vct}: ${error.message}`);
   }
 }

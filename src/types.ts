@@ -79,3 +79,35 @@ export const ReservedJWTClaimKeys: CreateSDJWTPayloadKeys[] = [
   'nbf',
   'exp',
 ];
+
+/**
+ * Represents the structure of a Type Metadata document as defined in the SD-JWT VC specification (Section 6.2).
+ */
+export interface TypeMetadata {
+  vct?: string;
+  name?: string;
+  description?: string;
+  extends?: string; // URI
+  display?: Array<Record<string, any>>;
+  claims?: Array<Record<string, any>>;
+  /**
+   * OPTIONAL. An embedded JSON Schema document describing the structure of the Verifiable Credential.
+   * MUST NOT be used if schema_uri is present.
+   */
+  schema?: Record<string, any>;
+  /**
+   * OPTIONAL. A URL pointing to a JSON Schema document.
+   * MUST NOT be used if schema is present.
+   */
+  schema_uri?: string;
+
+  /**
+   * OPTIONAL. integrity metadata for vct, extends, schema_uri, and similar URIs.
+   * Value MUST be an "integrity metadata" string per W3C.SRI.
+   */
+  'schema_uri#integrity'?: string;
+  'vct#integrity'?: string;
+  'extends#integrity'?: string;
+
+  [key: string]: any;
+}
