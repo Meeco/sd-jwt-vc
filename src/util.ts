@@ -218,24 +218,15 @@ export async function fetchTypeMetadataFromUrl(
       const calculatedHash = await Promise.resolve(options.hasher(rawContent));
 
       // Extract hash from integrity claim, handling algorithm prefixes properly
-      let expectedHash = integrityClaimValue;
+      const matchingPrefix = DEFAULT_ALGORITHM_PREFIXES.find((prefix) => integrityClaimValue.startsWith(prefix));
 
-      // Check for known algorithm prefixes
-      const algorithmPrefixes = DEFAULT_ALGORITHM_PREFIXES;
-      let foundPrefix = false;
-      for (const prefix of algorithmPrefixes) {
-        if (integrityClaimValue.startsWith(prefix)) {
-          expectedHash = integrityClaimValue.substring(prefix.length);
-          foundPrefix = true;
-          break;
-        }
-      }
-
-      if (!foundPrefix) {
+      if (!matchingPrefix) {
         throw new SDJWTVCError(
-          `Invalid algorithm prefix in vct#integrity claim: ${integrityClaimValue}. Expected one of: ${algorithmPrefixes.join(', ')}`,
+          `Invalid algorithm prefix in vct#integrity claim: ${integrityClaimValue}. Expected one of: ${DEFAULT_ALGORITHM_PREFIXES.join(', ')}`,
         );
       }
+
+      const expectedHash = integrityClaimValue.substring(matchingPrefix.length);
 
       if (calculatedHash !== expectedHash) {
         throw new SDJWTVCError(
