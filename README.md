@@ -3,7 +3,7 @@
 
 # SD-JWT-VC
 
-This is an implementation of [SD-JWT VC (I-D version 01)](https://drafts.oauth.net/oauth-sd-jwt-vc/draft-ietf-oauth-sd-jwt-vc.html) in Typescript. It provides a higher-level interface on top of the [@meeco/sd-jwt](https://github.com/Meeco/sd-jwt) library to create the compliant SD-JWT VCs.
+This is an implementation of [SD-JWT VC (I-D version 08)](https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html) in Typescript. It provides a higher-level interface on top of the [@meeco/sd-jwt](https://github.com/Meeco/sd-jwt) library to create the compliant SD-JWT VCs.
 
 **Note on `typ` header (as of v2.0.0):**
 
