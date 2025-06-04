@@ -11,9 +11,6 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 
 - `extractEmbeddedTypeMetadata()` utility function to extract and decode Type Metadata documents embedded in the `vctm` unprotected header of SD-JWT VCs
 - `fetchTypeMetadataFromUrl()` utility function to fetch and optionally verify Type Metadata from URLs specified in the `vct` claim, with integrity validation support
-
-### Added
-
 - Support embedding Type Metadata documents in the JWS unprotected header via the `vctm` parameter, as per [SD-JWT VC Spec Section 6.3.5](https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-05.html#section-6.3.5).
 
 ### Changed
