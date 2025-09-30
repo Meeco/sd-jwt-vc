@@ -1,5 +1,4 @@
 import { base64decode, decodeJWT, JWK, Hasher as SDJWTHasher, SDJWTPayload } from '@meeco/sd-jwt';
-import { decodeProtectedHeader } from 'jose';
 import { SDJWTVCError } from './errors.js';
 import { JWT, SD_JWT_FORMAT_SEPARATOR, TypeMetadata } from './types.js';
 
@@ -152,7 +151,8 @@ export function extractEmbeddedTypeMetadata(sdJwtVC: JWT): TypeMetadata[] | null
   const jws = parts[0];
 
   try {
-    const protectedHeader = decodeProtectedHeader(jws);
+    const decodedJWT = decodeJWT(jws);
+    const protectedHeader = decodedJWT.header;
 
     // Check if header is valid and has vctm
     if (!protectedHeader || typeof protectedHeader !== 'object') {
