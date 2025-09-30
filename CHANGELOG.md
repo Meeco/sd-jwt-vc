@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.1.0 - 2025-09-30
+
+### Fixed
+
+- Removed broken `jose` dependency from runtime dependencies by replacing `decodeProtectedHeader` with existing `@meeco/sd-jwt` library's `decodeJWT().header` functionality
+
 ## 2.0.0 - 2025-05-28
 
 ### Added
