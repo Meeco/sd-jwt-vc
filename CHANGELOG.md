@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.2.0 - 2026-02-04
+
+### Added
+
+- Added support to create SD-JWT VCs with other types of `cnf` type claim and also without `cnf` claim.
+
 ## 2.1.0 - 2025-09-30
 
 ### Fixed
