@@ -91,13 +91,15 @@ export class Issuer {
     if (!sdJWTPayload.iss || !isValidUrl(sdJWTPayload.iss)) {
       throw new SDJWTVCError('Issuer iss (issuer) is required and must be a valid URL');
     }
+
     if (!sdJWTPayload.iat || typeof sdJWTPayload.iat !== 'number') {
       throw new SDJWTVCError('Payload iat (Issued at - seconds since Unix epoch) is required and must be a number');
     }
-    if (!sdJWTPayload.cnf || typeof sdJWTPayload.cnf !== 'object' || !sdJWTPayload.cnf.jwk) {
-      throw new SDJWTVCError('Payload cnf is required and must be a JWK format');
-    }
-    if (typeof sdJWTPayload.cnf.jwk !== 'object' || typeof sdJWTPayload.cnf.jwk.kty !== 'string') {
+
+    if (
+      sdJWTPayload.cnf?.jwk &&
+      (typeof sdJWTPayload.cnf.jwk !== 'object' || typeof sdJWTPayload.cnf.jwk.kty !== 'string')
+    ) {
       throw new SDJWTVCError('Payload cnf.jwk must be valid JWK format');
     }
 
@@ -106,6 +108,7 @@ export class Issuer {
     }
 
     const prefixes = ['http', 'https', 'https://', 'http://'];
+
     if (
       prefixes.some((prefix) => (sdJWTPayload.vct as string).startsWith(prefix)) &&
       !isValidUrl(sdJWTPayload.vct as any)

@@ -20,7 +20,7 @@ export interface JWTHeader {
 export interface CreateSDJWTPayload extends JWTPayload {
   iss: string;
   iat: number;
-  cnf: Cnf;
+  cnf?: Cnf;
   vct: string;
   status?: Record<string, any>;
 }

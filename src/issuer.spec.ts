@@ -105,6 +105,69 @@ describe('Issuer', () => {
     });
   });
 
+  it('should create a verifiable credential SD JWT without cnf claim', async () => {
+    const payload: CreateSDJWTPayload = {
+      iat: Math.floor(Date.now() / 1000),
+      iss: 'https://valid.issuer.url',
+      vct: 'https://credentials.example.com/identity_credential',
+      status: {
+        idx: 0,
+        uri: 'https://valid.status.url',
+      },
+    };
+
+    const vcClaims: VCClaims = {
+      person: {
+        name: 'test person',
+        age: 25,
+      },
+    };
+
+    const sdVCClaimsDisclosureFrame: DisclosureFrame = { person: { _sd: ['name', 'age'] } };
+    const sdVCHeader = {
+      kid: '1b94c',
+      x5c: [
+        'MIIDQjCCAiqgAwIBAgIGATz/FuLiMA0GCSqGSIb3DQEBBQUAMGIxCzAJB...',
+        'MIIDQjCCAiqgAwIBAgIGATz/FuLiMA0GCSqGSIb3DQEBBQUAMGIxCzAJC...',
+      ],
+    };
+
+    const VCSDJwt = await issuer.createSignedVCSDJWT({
+      vcClaims,
+      sdJWTPayload: payload,
+      sdVCClaimsDisclosureFrame,
+      saltGenerator: undefined,
+      sdJWTHeader: sdVCHeader,
+    });
+
+    expect(VCSDJwt).toBeDefined();
+    expect(typeof VCSDJwt).toBe('string');
+
+    const s = VCSDJwt.split(SD_JWT_FORMAT_SEPARATOR);
+
+    const { header, payload: jwtPayload } = decodeJWT(s.shift() || '');
+
+    expect(header.alg).toEqual(signer.alg);
+    expect(header.typ).toEqual(ValidTypValues.DCSDJWT);
+    expect(header.x5c).toEqual(sdVCHeader.x5c);
+    expect(header.kid).toEqual(sdVCHeader.kid);
+
+    expect(jwtPayload.iss).toEqual(payload.iss);
+    expect(jwtPayload.iat).toEqual(payload.iat);
+    expect(jwtPayload.nbf).toBeUndefined();
+    expect(jwtPayload.exp).toBeUndefined();
+    expect(jwtPayload.cnf).toBeUndefined();
+    expect(jwtPayload.vct).toEqual(payload.vct);
+    expect(jwtPayload.status).toEqual(payload.status);
+
+    // remove empty string
+    s.pop();
+    const disclosures = decodeDisclosures(s);
+    s.forEach((disclosure) => {
+      expect(disclosures.map((m) => m.disclosure)).toContainEqual(disclosure);
+    });
+  });
+
   it('should default to dc+sd-jwt if an invalid typ is provided in header', async () => {
     const payload: CreateSDJWTPayload = {
       iat: Math.floor(Date.now() / 1000),
@@ -264,29 +327,6 @@ describe('Issuer', () => {
 
       expect(() => issuer.validateSDJWTPayload(sdJWTPayload as any)).toThrow(
         'Payload iat (Issued at - seconds since Unix epoch) is required and must be a number',
-      );
-    });
-
-    it('should throw an error if cnf is missing', () => {
-      const sdJWTPayload = {
-        iat: Math.floor(Date.now() / 1000),
-        iss: 'https://valid.issuer.url',
-      };
-
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload)).toThrow(
-        'Payload cnf is required and must be a JWK format',
-      );
-    });
-
-    it('should throw an error if cnf.jwk is missing', () => {
-      const sdJWTPayload = {
-        iat: Math.floor(Date.now() / 1000),
-        cnf: {},
-        iss: 'https://valid.issuer.url',
-      };
-
-      expect(() => issuer.validateSDJWTPayload(sdJWTPayload as any)).toThrow(
-        'Payload cnf is required and must be a JWK format',
       );
     });
 
