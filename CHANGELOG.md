@@ -9,7 +9,8 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 
 ### Added
 
-- Added support to create SD-JWT VCs with other types of `cnf` type claim and also without `cnf` claim.
+- Added support to create SD-JWT VC without `cnf` claim.
+- Added support to create SD-JWT VC with other types of `cnf` type claim
 
 ## 2.1.0 - 2025-09-30
 

@@ -96,10 +96,11 @@ export class Issuer {
       throw new SDJWTVCError('Payload iat (Issued at - seconds since Unix epoch) is required and must be a number');
     }
 
-    if (sdJWTPayload.cnf && sdJWTPayload.cnf.jwk) {
-      if (typeof sdJWTPayload.cnf.jwk !== 'object' || typeof sdJWTPayload.cnf.jwk.kty !== 'string') {
-        throw new SDJWTVCError('Payload cnf.jwk must be valid JWK format');
-      }
+    if (
+      sdJWTPayload.cnf?.jwk &&
+      (typeof sdJWTPayload.cnf.jwk !== 'object' || typeof sdJWTPayload.cnf.jwk.kty !== 'string')
+    ) {
+      throw new SDJWTVCError('Payload cnf.jwk must be valid JWK format');
     }
 
     if (!sdJWTPayload.vct || typeof sdJWTPayload.vct !== 'string') {
