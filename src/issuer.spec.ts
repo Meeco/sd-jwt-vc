@@ -435,6 +435,12 @@ describe('Issuer', () => {
       );
     });
 
+    it('should reserve integrity metadata keys', () => {
+      expect(ReservedJWTClaimKeys).toEqual(
+        expect.arrayContaining(['vct#integrity', 'extends#integrity', 'schema_uri#integrity']),
+      );
+    });
+
     it('should not throw an error if all properties are valid', () => {
       const claims = {
         person: {
