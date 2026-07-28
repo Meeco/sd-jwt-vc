@@ -104,6 +104,53 @@ describe('Holder', () => {
     });
   });
 
+  describe('transaction_data_hashes', () => {
+    const TRANSACTION_DATA_OBJECT_1 = { type: 'qualified_esignature', credential_ids: ['cred_1'] };
+    const TRANSACTION_DATA_OBJECT_2 = { type: 'qualified_certificate', credential_ids: ['cred_2'] };
+    const TRANSACTION_DATA_1 = Buffer.from(JSON.stringify(TRANSACTION_DATA_OBJECT_1)).toString('base64url');
+    const TRANSACTION_DATA_2 = Buffer.from(JSON.stringify(TRANSACTION_DATA_OBJECT_2)).toString('base64url');
+    const EXPECTED_SHA256_HASH_1 = 'J6reCzZBvghZERFVo8pYCa-flJa92qWrc4-gGJNE6Fw';
+    const EXPECTED_SHA256_HASH_2 = 'lAoNvKTMdAcq1GnyIh61xSd56hc2dp12ty_lfT7Zb68';
+    const EXPECTED_SHA384_HASH_1 = 'YIBsIbWFXFojcuU_mGxN3fHsU3QK5dXS4BsLE22bTQrgdoFTVnv_mrt7jFMGER6G';
+
+    const audience = 'https://valid.verifier.url';
+
+    it('computes one hash per transaction_data entry, preserving order', async () => {
+      const { keyBindingJWT } = await presentVCSDWithKeyBindingJWT(audience, {
+        transaction_data: [TRANSACTION_DATA_1, TRANSACTION_DATA_2],
+      });
+      const { payload } = decodeJWT(keyBindingJWT);
+
+      expect(payload.transaction_data_hashes).toEqual([EXPECTED_SHA256_HASH_1, EXPECTED_SHA256_HASH_2]);
+      expect(payload.transaction_data_hashes_alg).toEqual('sha-256');
+    });
+
+    it('uses a non-default transactionDataHashAlg', async () => {
+      const { keyBindingJWT } = await presentVCSDWithKeyBindingJWT(audience, {
+        transaction_data: [TRANSACTION_DATA_1],
+        transactionDataHashAlg: 'sha-384',
+      });
+      const { payload } = decodeJWT(keyBindingJWT);
+
+      expect(payload.transaction_data_hashes).toEqual([EXPECTED_SHA384_HASH_1]);
+      expect(payload.transaction_data_hashes_alg).toEqual('sha-384');
+    });
+
+    it('does not include transaction_data_hashes when transaction_data is not provided', async () => {
+      const { keyBindingJWT } = await presentVCSDWithKeyBindingJWT(audience);
+      const { payload } = decodeJWT(keyBindingJWT);
+
+      expect(payload).toEqual({
+        aud: audience,
+        iat: expect.any(Number),
+        nonce: expect.any(String),
+        sd_hash: expect.any(String),
+      });
+      expect(payload).not.toHaveProperty('transaction_data_hashes');
+      expect(payload).not.toHaveProperty('transaction_data_hashes_alg');
+    });
+  });
+
   it('should present VerifiableCredential SD JWT With KeyBindingJWT', async () => {
     const audience = 'https://valid.verifier.url';
     const { disclosures, keyBindingJWT, disclosedList, nonceFromVerifier } =
@@ -190,7 +237,10 @@ describe('Holder', () => {
   });
 
   //helper function
-  async function presentVCSDWithKeyBindingJWT(audience: string) {
+  async function presentVCSDWithKeyBindingJWT(
+    audience: string,
+    transactionDataOptions?: { transaction_data?: string[]; transactionDataHashAlg?: string },
+  ) {
     const _publicJwk = {
       kty: 'EC',
       x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
@@ -228,6 +278,7 @@ describe('Holder', () => {
       nonce: nonceFromVerifier,
       audience: audience,
       keyBindingVerifyCallbackFn: keyBindingVerifierCallbackFn(),
+      ...transactionDataOptions,
     });
 
     const { disclosures, keyBindingJWT } = decodeSDJWT(vcSDJWTWithkeyBindingJWT);
