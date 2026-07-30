@@ -1,6 +1,7 @@
 import { decodeJWT, JWK, Hasher as SDJWTHasher, SDJWTPayload } from '@meeco/sd-jwt';
 import * as crypto from 'crypto';
 import { SDJWTVCError } from './errors';
+import { hasherCallbackFn } from './test-utils/helpers';
 import {
   computeTransactionDataHashes,
   extractEmbeddedTypeMetadata,
@@ -738,12 +739,17 @@ describe('computeTransactionDataHashes', () => {
   it('hashes the UTF-8 bytes of the string itself, matching an independently-computed sha-256 digest', () => {
     const expectedHash = crypto.createHash('sha-256').update(TRANSACTION_DATA_ENTRY_1, 'utf-8').digest('base64url');
 
-    expect(computeTransactionDataHashes([TRANSACTION_DATA_ENTRY_1])).toEqual([expectedHash]);
+    expect(computeTransactionDataHashes([TRANSACTION_DATA_ENTRY_1], hasherCallbackFn('sha-256'))).toEqual([
+      expectedHash,
+    ]);
     expect(expectedHash).toEqual('J6reCzZBvghZERFVo8pYCa-flJa92qWrc4-gGJNE6Fw');
   });
 
   it('returns one hash per input string, in the same order', () => {
-    const result = computeTransactionDataHashes([TRANSACTION_DATA_ENTRY_1, TRANSACTION_DATA_ENTRY_2]);
+    const result = computeTransactionDataHashes(
+      [TRANSACTION_DATA_ENTRY_1, TRANSACTION_DATA_ENTRY_2],
+      hasherCallbackFn('sha-256'),
+    );
 
     expect(result).toEqual([
       crypto.createHash('sha-256').update(TRANSACTION_DATA_ENTRY_1, 'utf-8').digest('base64url'),
@@ -752,7 +758,7 @@ describe('computeTransactionDataHashes', () => {
   });
 
   it('uses a non-default algorithm', () => {
-    const result = computeTransactionDataHashes([TRANSACTION_DATA_ENTRY_1], 'sha-384');
+    const result = computeTransactionDataHashes([TRANSACTION_DATA_ENTRY_1], hasherCallbackFn('sha-384'));
 
     expect(result).toEqual([
       crypto.createHash('sha-384').update(TRANSACTION_DATA_ENTRY_1, 'utf-8').digest('base64url'),

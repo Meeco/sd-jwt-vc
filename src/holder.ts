@@ -226,7 +226,7 @@ export class Holder {
 
     const transactionDataHashes =
       options.transaction_data && options.transaction_data.length > 0
-        ? computeTransactionDataHashes(options.transaction_data, transactionDataHashesAlg)
+        ? computeTransactionDataHashes(options.transaction_data, await this.getHasher(transactionDataHashesAlg))
         : undefined;
 
     const { keyBindingJWT } = transactionDataHashes
