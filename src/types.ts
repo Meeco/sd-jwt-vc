@@ -38,6 +38,8 @@ export interface PresentSDJWTPayload extends JWTPayload {
   nonce: string;
   aud: string;
   iat: number;
+  transaction_data_hashes?: string[];
+  transaction_data_hashes_alg?: string;
 }
 
 export interface VCClaims {

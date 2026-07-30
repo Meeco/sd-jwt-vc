@@ -18,7 +18,7 @@ import {
   SD_KEY_BINDING_JWT_TYP,
   SignerConfig,
 } from './types.js';
-import { defaultHashAlgorithm } from './util.js';
+import { computeTransactionDataHashes, defaultHashAlgorithm, defaultTransactionDataHashAlgorithm } from './util.js';
 
 export class Holder {
   private signer: SignerConfig;
@@ -60,6 +60,8 @@ export class Holder {
    * Gets a key binding JWT.
    * @param audience The verifier to present the VC SD-JWT to. e.g. https://example.com/verifier
    * @param nonce The nonce to use.
+   * @param sdHash The SD-JWT hash.
+   * @param header Optional additional JWT header parameters.
    * @throws An error if the key binding JWT cannot be created.
    * @returns The key binding JWT.
    */
@@ -68,6 +70,37 @@ export class Holder {
     nonce: string,
     sdHash: string,
     header?: Omit<JWTHeaderParameters, 'typ' | 'alg'>,
+  ): Promise<{ keyBindingJWT: JWT; nonce?: string }>;
+
+  /**
+   * Gets a key binding JWT that also carries transaction_data_hashes.
+   * @param audience The verifier to present the VC SD-JWT to. e.g. https://example.com/verifier
+   * @param nonce The nonce to use.
+   * @param sdHash The SD-JWT hash.
+   * @param header Optional additional JWT header parameters.
+   * @param transactionDataHashes Per-entry hashes of the transaction_data strings from the Authorization Request,
+   * included in the KB-JWT payload as `transaction_data_hashes`.
+   * @param transactionDataHashesAlg The hash algorithm used to compute transactionDataHashes, e.g. 'sha-256'.
+   * Included in the KB-JWT payload as `transaction_data_hashes_alg`.
+   * @throws An error if the key binding JWT cannot be created.
+   * @returns The key binding JWT.
+   */
+  async getKeyBindingJWT(
+    audience: string,
+    nonce: string,
+    sdHash: string,
+    header: Omit<JWTHeaderParameters, 'typ' | 'alg'> | undefined,
+    transactionDataHashes: string[],
+    transactionDataHashesAlg: string,
+  ): Promise<{ keyBindingJWT: JWT; nonce?: string }>;
+
+  async getKeyBindingJWT(
+    audience: string,
+    nonce: string,
+    sdHash: string,
+    header?: Omit<JWTHeaderParameters, 'typ' | 'alg'>,
+    transactionDataHashes?: string[],
+    transactionDataHashesAlg?: string,
   ): Promise<{ keyBindingJWT: JWT; nonce?: string }> {
     try {
       const protectedHeader = {
@@ -76,11 +109,19 @@ export class Holder {
         alg: this.signer.alg,
       };
 
+      const transactionDataHashClaims = transactionDataHashes
+        ? {
+            transaction_data_hashes: transactionDataHashes,
+            transaction_data_hashes_alg: transactionDataHashesAlg,
+          }
+        : {};
+
       const presentSDJWTPayload: PresentSDJWTPayload = {
         aud: audience,
         nonce,
         sd_hash: sdHash,
         iat: Math.floor(Date.now() / 1000),
+        ...transactionDataHashClaims,
       };
 
       const signature: string = await this.signer.callback(protectedHeader, presentSDJWTPayload);
@@ -117,6 +158,46 @@ export class Holder {
       keyBindingVerifyCallbackFn?: KeyBindingVerifier;
       kbJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>;
     },
+  ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce?: string }>;
+
+  /**
+   * Presents a VC SD-JWT with a key binding JWT that also carries transaction_data_hashes.
+   * @param sdJWT The SD-JWT to present.
+   * @param disclosedList The list of disclosed claims.
+   * @param options The options to use.
+   * @param options.nonce The nonce to use.
+   * @param options.audience The verifier to present the VC SD-JWT to. e.g. https://example.com/verifier
+   * @param options.keyBindingVerifierCallbackFn The callback function to verify the key binding JWT with the holder public key.
+   * @param options.transaction_data The base64url-encoded transaction_data strings from the Authorization Request,
+   * passed through verbatim (not re-encoded). Their hashes are included in the Key Binding JWT as `transaction_data_hashes`.
+   * @param options.transactionDataHashAlg The hash algorithm to use for transaction_data_hashes, e.g. 'sha-256'. Defaults to 'sha-256'.
+   * @throws An error if the VC SD-JWT cannot be presented.
+   * @returns The VC SD-JWT with the key binding JWT.
+   */
+  async presentVCSDJWT(
+    sdJWT: JWT,
+    disclosedList: Disclosure[],
+    options: {
+      nonce?: string;
+      audience?: string;
+      keyBindingVerifyCallbackFn?: KeyBindingVerifier;
+      kbJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>;
+      transaction_data: string[];
+      transactionDataHashAlg?: string;
+    },
+  ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce?: string }>;
+
+  async presentVCSDJWT(
+    sdJWT: JWT,
+    disclosedList: Disclosure[],
+    options?: {
+      nonce?: string;
+      audience?: string;
+      keyBindingVerifyCallbackFn?: KeyBindingVerifier;
+      kbJWTHeader?: Omit<JWTHeaderParameters, 'typ' | 'alg'>;
+      transaction_data?: string[];
+      transactionDataHashAlg?: string;
+    },
   ): Promise<{ vcSDJWTWithkeyBindingJWT: JWT; nonce?: string }> {
     if (options.audience && typeof options.audience !== 'string') {
       throw new SDJWTVCError('Invalid audience parameter');
@@ -141,12 +222,23 @@ export class Holder {
     const vcSDJWTWithSelectedDisclosures = this.selectDisclosures(sdJWT, disclosedList);
     const sdJwtHash: string = hasher(vcSDJWTWithSelectedDisclosures);
 
-    const { keyBindingJWT } = await this.getKeyBindingJWT(
-      options.audience,
-      options.nonce,
-      sdJwtHash,
-      options.kbJWTHeader,
-    );
+    const transactionDataHashesAlg = options.transactionDataHashAlg ?? defaultTransactionDataHashAlgorithm;
+
+    const transactionDataHashes =
+      options.transaction_data && options.transaction_data.length > 0
+        ? computeTransactionDataHashes(options.transaction_data, transactionDataHashesAlg)
+        : undefined;
+
+    const { keyBindingJWT } = transactionDataHashes
+      ? await this.getKeyBindingJWT(
+          options.audience,
+          options.nonce,
+          sdJwtHash,
+          options.kbJWTHeader,
+          transactionDataHashes,
+          transactionDataHashesAlg,
+        )
+      : await this.getKeyBindingJWT(options.audience, options.nonce, sdJwtHash, options.kbJWTHeader);
 
     if (options.keyBindingVerifyCallbackFn && typeof options.keyBindingVerifyCallbackFn === 'function') {
       await this.verifyKeyBinding(options.keyBindingVerifyCallbackFn, keyBindingJWT, holderPublicKeyJWK);

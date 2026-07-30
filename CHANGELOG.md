@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.3.0 - 2026-07-28
+
+### Added
+
+- Added `options.transaction_data` and `options.transactionDataHashAlg` to `Holder#presentVCSDJWT`. When `transaction_data` is provided, `transaction_data_hashes` and `transaction_data_hashes_alg` are computed and included in the Key Binding JWT per [OpenID4VP](https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-transaction-data-3).
+
+### Security
+
+- Upgrade development dependencies (`eslint` and related packages), to avoid a warning about running a version of TypeScript not officially supported by `@typescript-eslint/typescript-estree`.
+
 ## 2.2.2 - 2026-06-22
 
 ### Fixed

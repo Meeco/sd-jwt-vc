@@ -1,7 +1,12 @@
 import { decodeJWT, JWK, Hasher as SDJWTHasher, SDJWTPayload } from '@meeco/sd-jwt';
 import * as crypto from 'crypto';
 import { SDJWTVCError } from './errors';
-import { extractEmbeddedTypeMetadata, fetchTypeMetadataFromUrl, getIssuerPublicKeyFromWellKnownURI } from './util';
+import {
+  computeTransactionDataHashes,
+  extractEmbeddedTypeMetadata,
+  fetchTypeMetadataFromUrl,
+  getIssuerPublicKeyFromWellKnownURI,
+} from './util';
 
 describe('getIssuerPublicKeyFromIss', () => {
   const sdJwtVC =
@@ -721,5 +726,36 @@ describe('fetchTypeMetadataFromUrl', () => {
 
     expect(mockHasher).toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledWith(vctUrl);
+  });
+});
+
+describe('computeTransactionDataHashes', () => {
+  const TRANSACTION_DATA_OBJECT_1 = { type: 'qualified_esignature', credential_ids: ['cred_1'] };
+  const TRANSACTION_DATA_OBJECT_2 = { type: 'qualified_certificate', credential_ids: ['cred_2'] };
+  const TRANSACTION_DATA_ENTRY_1 = Buffer.from(JSON.stringify(TRANSACTION_DATA_OBJECT_1)).toString('base64url');
+  const TRANSACTION_DATA_ENTRY_2 = Buffer.from(JSON.stringify(TRANSACTION_DATA_OBJECT_2)).toString('base64url');
+
+  it('hashes the UTF-8 bytes of the string itself, matching an independently-computed sha-256 digest', () => {
+    const expectedHash = crypto.createHash('sha-256').update(TRANSACTION_DATA_ENTRY_1, 'utf-8').digest('base64url');
+
+    expect(computeTransactionDataHashes([TRANSACTION_DATA_ENTRY_1])).toEqual([expectedHash]);
+    expect(expectedHash).toEqual('J6reCzZBvghZERFVo8pYCa-flJa92qWrc4-gGJNE6Fw');
+  });
+
+  it('returns one hash per input string, in the same order', () => {
+    const result = computeTransactionDataHashes([TRANSACTION_DATA_ENTRY_1, TRANSACTION_DATA_ENTRY_2]);
+
+    expect(result).toEqual([
+      crypto.createHash('sha-256').update(TRANSACTION_DATA_ENTRY_1, 'utf-8').digest('base64url'),
+      crypto.createHash('sha-256').update(TRANSACTION_DATA_ENTRY_2, 'utf-8').digest('base64url'),
+    ]);
+  });
+
+  it('uses a non-default algorithm', () => {
+    const result = computeTransactionDataHashes([TRANSACTION_DATA_ENTRY_1], 'sha-384');
+
+    expect(result).toEqual([
+      crypto.createHash('sha-384').update(TRANSACTION_DATA_ENTRY_1, 'utf-8').digest('base64url'),
+    ]);
   });
 });

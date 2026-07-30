@@ -232,6 +232,22 @@ main();
 
 This will create an SD JWT VC with Key Binding JWT. The holder can then send this JWT to the verifier.
 
+If the Authorization Request included a `transaction_data` parameter, pass its entries through unchanged (as received on the wire, base64url-encoded) via `options.transaction_data`. The hashes are computed and included as `transaction_data_hashes`/`transaction_data_hashes_alg` in the Key Binding JWT:
+
+```typescript
+  const transactionData = [
+    'eyJ0eXBlIjoicXVhbGlmaWVkX2VzaWduYXR1cmUiLCJjcmVkZW50aWFsX2lkcyI6WyJjcmVkXzEiXX0',
+  ];
+
+  const { vcSDJWTWithkeyBindingJWT } = await holder.presentVCSDJWT(issuedSDJWT, disclosureList, {
+    nonce: nonceFromVerifier,
+    audience: 'https://valid.verifier.url',
+    keyBindingVerifyCallbackFn: keyBindingVerifierCallbackFn(),
+    transaction_data: transactionData,
+    // transactionDataHashAlg: 'sha-256', // optional, defaults to 'sha-256'
+  });
+```
+
 ### Verifier
 
 This is a TypeScript class that represents a verifier of Verifiable Credentials (VCs) that can verify Signed and Disclosed SD JWT VC's with Key Binding to Holder.

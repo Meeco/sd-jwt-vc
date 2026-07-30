@@ -1,4 +1,5 @@
 import { base64decode, decodeJWT, JWK, Hasher as SDJWTHasher, SDJWTPayload } from '@meeco/sd-jwt';
+import { createHash } from 'crypto';
 import { SDJWTVCError } from './errors.js';
 import { JWT, SD_JWT_FORMAT_SEPARATOR, TypeMetadata } from './types.js';
 
@@ -22,6 +23,21 @@ export enum supportedAlgorithm {
 }
 
 export const defaultHashAlgorithm = 'sha256';
+
+export const defaultTransactionDataHashAlgorithm = 'sha-256';
+
+/**
+ * Computes transaction_data_hashes.
+ * @param transactionDataEntries The base64url-encoded transaction_data strings, in order.
+ * @param alg The hash algorithm to use, e.g. 'sha-256'.
+ * @returns The base64url-encoded hashes, in the same order as transactionDataEntries.
+ */
+export function computeTransactionDataHashes(
+  transactionDataEntries: string[],
+  alg: string = defaultTransactionDataHashAlgorithm,
+): string[] {
+  return transactionDataEntries.map((entry) => createHash(alg).update(entry, 'utf-8').digest('base64url'));
+}
 
 export function isValidUrl(url: string): boolean {
   try {
