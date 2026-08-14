@@ -70,10 +70,7 @@ export type NonceGenerator = (length?: number) => string;
 
 export type CreateSDJWTPayloadKeys = keyof CreateSDJWTPayload;
 export type ReservedJWTClaimKey =
-  | CreateSDJWTPayloadKeys
-  | 'vct#integrity'
-  | 'extends#integrity'
-  | 'schema_uri#integrity';
+  CreateSDJWTPayloadKeys | 'vct#integrity' | 'extends#integrity' | 'schema_uri#integrity';
 export const ReservedJWTClaimKeys: ReservedJWTClaimKey[] = [
   'iss',
   'iat',
