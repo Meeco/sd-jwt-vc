@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "target": "es2022",
     "outDir": "./dev",
-    "baseUrl": "./",
+    "types": ["jest", "node"],
     "incremental": true,
     "strictNullChecks": false,
     "noImplicitAny": false,

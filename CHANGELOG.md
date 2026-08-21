@@ -8,9 +8,13 @@ and this project (loosely) adheres to [Semantic Versioning](https://semver.org/s
 
 ## 2.3.1 - UNRELEASED
 
+### Changed
+
+- Typescript upgraded from 5.6.2 to 6.0.3
+
 ### Security
 
-- Upgrade development dependencies.
+- Upgrade development dependencies
 
 ## 2.3.0 - 2026-07-28
 
