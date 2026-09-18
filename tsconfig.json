@@ -16,6 +16,7 @@
     "noFallthroughCasesInSwitch": false,
   },
   "exclude": [
-    "demo"
+    "demo",
+    "dev"
   ]
 }
