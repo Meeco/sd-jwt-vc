@@ -25,7 +25,7 @@ describe('Issuer', () => {
       callback: signerCallbackFn(keyPair.privateKey),
     };
     hasher = {
-      alg: 'sha256',
+      alg: 'sha-256',
       callback: hasherCallbackFn('sha256'),
     };
 
