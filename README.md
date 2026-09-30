@@ -62,8 +62,8 @@ async function main() {
   const keyPair = await generateKeyPair(supportedAlgorithm.EdDSA);
 
   const hasher: HasherConfig = {
-    alg: 'sha256',
-    callback: hasherCallbackFn('sha256'),
+    alg: 'sha-256', // written into _sd_alg; use the IANA name (Node's 'sha256' is only accepted for compatibility)
+    callback: hasherCallbackFn('sha256'), // Node's name for the same algorithm
   };
   const signer: SignerConfig = {
     alg: supportedAlgorithm.EdDSA,
@@ -260,7 +260,17 @@ verifyVCSDJWT method takes the following parameters:
 - vcSDJWTWithkeyBindingJWT: The SD JWT VC with Key Binding JWT that was sent by the holder.
 - verifierCallbackFn: The callback function that will be used to verify the SD JWT VC with Key Binding JWT. It must be a function that takes a string and returns a boolean.
 - hasherCallbackFn: The callback function that will be used to hash the disclosued claims in the SD JWTs. It must be a function that takes a string and returns a string.
-- kbVeriferCallbackFn: The callback function that will be used to verify the key binding in the SD JWT VC with Key Binding JWT. It must be a function that takes a string and returns a boolean.
+- kbVeriferCallbackFn: The callback function that will be used to verify the key binding in the SD JWT VC with Key Binding JWT. It must be a function that takes a string and returns a boolean. It must also check the Key Binding JWT's `aud` and `nonce` against the request you issued; `@meeco/sd-jwt` verifies its `typ`, `sd_hash` and `iat` itself.
+- options (optional): validation options passed through to `@meeco/sd-jwt`:
+  - `time`: the credential's `exp` and `nbf` are enforced by default. Pass `{ skewSeconds }` to allow for clock drift, or `{ skip: true }` to leave the validity period to your own code, for example when you report expiry as a warning rather than rejecting the credential.
+  - `kb.iat`: the Key Binding JWT must have been created within 10 minutes of now by default. Pass `{ skewSeconds }` for a different window, or `{ skip: true }` to accept a proof of possession of any age.
+
+```typescript
+const result = await verifier.verifyVCSDJWT(presentation, verifierCallbackFn, hasherCallbackFn, kbVeriferCallbackFn, {
+  time: { skip: true },
+  kb: { iat: { skewSeconds: 300 } },
+});
+```
 
 Here's an example:
 

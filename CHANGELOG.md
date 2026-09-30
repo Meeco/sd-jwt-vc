@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.4.0 - 2026-09-29
+
+### Added
+
+- `verifyVCSDJWT` takes an optional fifth `options` argument, passed through to `@meeco/sd-jwt`: `{ time: { skip, skewSeconds } }` for the credential's `exp` and `nbf`, and `{ kb: { iat: { skip, skewSeconds } } }` for the freshness of the Key Binding JWT
+
+### Changed
+
+- Upgrade @meeco/sd-jwt from version 1.2.4 to 1.3.1. Verification is stricter as a result:
+  - a credential's `exp` and `nbf` are enforced; pass `{ time: { skip: true } }` to keep handling them yourself
+  - a Key Binding JWT must have `typ: kb+jwt`, an `sd_hash` matching the presented SD-JWT, and an `iat` within 10 minutes of now
+  - `_sd_alg` must be an IANA hash name such as `sha-256`, or one of Node's names `sha256`, `sha384` and `sha512`, which are still accepted for compatibility.
 
 ## 2.3.1 - 2026-08-24
 

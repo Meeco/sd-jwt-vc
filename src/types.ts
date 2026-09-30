@@ -1,4 +1,13 @@
-import { DisclosureFrame, Hasher, JWK, JWTHeaderParameters, JWTPayload, SaltGenerator, Signer } from '@meeco/sd-jwt';
+import {
+  DisclosureFrame,
+  Hasher,
+  JWK,
+  JWTHeaderParameters,
+  JWTPayload,
+  SaltGenerator,
+  Signer,
+  VerifySDJWTOptions,
+} from '@meeco/sd-jwt';
 import { supportedAlgorithm } from './util.js';
 
 export const SD_JWT_FORMAT_SEPARATOR = '~';
@@ -118,3 +127,12 @@ export interface TypeMetadata {
 
   [key: string]: any;
 }
+
+export type VerifyVCSDJWTOptions = {
+  // Validation of the credential's exp and nbf; enforced by default.
+  time?: VerifySDJWTOptions['time'];
+  kb?: {
+    // Freshness of the Key Binding JWT's iat; enforced by default.
+    iat?: NonNullable<VerifySDJWTOptions['kb']>['iat'];
+  };
+};

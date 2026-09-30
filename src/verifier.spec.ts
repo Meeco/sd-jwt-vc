@@ -1,7 +1,15 @@
-import { Hasher } from '@meeco/sd-jwt';
-import { importJWK } from 'jose';
-import { hasherCallbackFn, kbVeriferCallbackFn, verifierCallbackFn } from './test-utils/helpers';
-import { ValidTypValues, defaultHashAlgorithm } from './util';
+import { Hasher, JWK, decodeSDJWT } from '@meeco/sd-jwt';
+import { compactVerify, exportJWK, generateKeyPair, importJWK } from 'jose';
+import { Holder } from './holder';
+import { Issuer } from './issuer';
+import {
+  generateNonce,
+  hasherCallbackFn,
+  kbVeriferCallbackFn,
+  signerCallbackFn,
+  verifierCallbackFn,
+} from './test-utils/helpers';
+import { ValidTypValues, defaultHashAlgorithm, supportedAlgorithm } from './util';
 import { Verifier } from './verifier';
 
 describe('Verifier', () => {
@@ -52,53 +60,110 @@ describe('Verifier', () => {
       const hasher: Hasher = hasherCallbackFn(defaultHashAlgorithm);
       const sdJwtHash: string = hasher(vcSDJWTWithoutKeyBinding);
 
+      // This KB-JWT was signed once and stored, so its iat is long stale and is rejected by default.
+      await expect(
+        verifier.verifyVCSDJWT(
+          vcSDJWTWithkeyBindingJWT,
+          verifierCallbackFn(issuerPubKey),
+          hasherCallbackFn(defaultHashAlgorithm),
+          kbVeriferCallbackFn('https://valid.verifier.url', nonce, sdJwtHash),
+        ),
+      ).rejects.toThrow('is not within 600s of now');
+
       const result = await verifier.verifyVCSDJWT(
         vcSDJWTWithkeyBindingJWT,
         verifierCallbackFn(issuerPubKey),
         hasherCallbackFn(defaultHashAlgorithm),
         kbVeriferCallbackFn('https://valid.verifier.url', nonce, sdJwtHash),
+        { kb: { iat: { skip: true } } },
       );
       expect(result).toEqual(claims);
     });
 
-    it('should verify VerifiableCredential SD JWT With KeyBindingJWT (dc+sd-jwt typ)', async () => {
-      const claims = {
-        iat: 1748320939,
-        cnf: {
-          jwk: {
-            kty: 'EC',
-            x: 'rH7OlmHqdpNOR2P28S7uroxAGk1321Nsgxgp4x_Piew',
-            y: 'WGCOJmA7nTsXP9Az_mtNy0jT7mdMCmStTfSO4DjRsSg',
-            crv: 'P-256',
+    describe('with a credential issued and presented in the test', () => {
+      const AUDIENCE = 'https://valid.verifier.url';
+
+      const issueAndPresent = async (payloadClaims: { exp?: number } = {}) => {
+        const issuerKeyPair = await generateKeyPair(supportedAlgorithm.ES256);
+        const holderKeyPair = await generateKeyPair(supportedAlgorithm.ES256);
+
+        const issuer = new Issuer(
+          { alg: supportedAlgorithm.ES256, callback: signerCallbackFn(issuerKeyPair.privateKey) },
+          { alg: 'sha-256', callback: hasherCallbackFn('sha-256') },
+        );
+
+        const vcSDJWT = await issuer.createSignedVCSDJWT({
+          vcClaims: { person: { name: 'test person', age: 25 } },
+          sdJWTPayload: {
+            iat: Math.floor(Date.now() / 1000),
+            cnf: { jwk: (await exportJWK(holderKeyPair.publicKey)) as JWK },
+            iss: 'https://valid.issuer.url',
+            vct: 'https://credentials.example.com/identity_credential',
+            ...payloadClaims,
           },
-        },
-        iss: 'http://issuer.url/jwks',
-        vct: 'https://credentials.example.com/identity_credential',
-        person: { name: 'test person', age: 25 },
+          sdVCClaimsDisclosureFrame: { person: { _sd: ['name', 'age'] } },
+        });
+
+        const holder = new Holder(
+          { alg: supportedAlgorithm.ES256, callback: signerCallbackFn(holderKeyPair.privateKey) },
+          (alg: string) => Promise.resolve(hasherCallbackFn(alg)),
+        );
+
+        const nonce = generateNonce();
+        const { disclosures } = decodeSDJWT(vcSDJWT);
+        const { vcSDJWTWithkeyBindingJWT } = await holder.presentVCSDJWT(vcSDJWT, disclosures, {
+          nonce,
+          audience: AUDIENCE,
+        });
+
+        const presentationWithoutKBJWT = vcSDJWTWithkeyBindingJWT.slice(
+          0,
+          vcSDJWTWithkeyBindingJWT.lastIndexOf('~') + 1,
+        );
+        const sdJwtHash = hasherCallbackFn('sha-256')(presentationWithoutKBJWT);
+
+        return {
+          presentation: vcSDJWTWithkeyBindingJWT,
+          issuerPublicKey: issuerKeyPair.publicKey,
+          issuerVerifier: verifierCallbackFn(issuerKeyPair.publicKey),
+          kbVerifier: kbVeriferCallbackFn(AUDIENCE, nonce, sdJwtHash),
+        };
       };
 
-      const dcSdJwtWithKb =
-        'eyJ0eXAiOiJkYytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJpYXQiOjE3NDgzMjA5MzksImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHA6Ly9pc3N1ZXIudXJsL2p3a3MiLCJ2Y3QiOiJodHRwczovL2NyZWRlbnRpYWxzLmV4YW1wbGUuY29tL2lkZW50aXR5X2NyZWRlbnRpYWwiLCJfc2QiOlsiYnY3ZmZiaWRnV3JnR19YNTlBUjZYZXBOb3I1RjNZeTNxZ01IOUZHbmlaZyJdLCJfc2RfYWxnIjoic2hhMjU2In0.kngQbIsVNEA03Pif5om5fvnt9C2Sz83c-XblGUAWDyseGYqhSu5nwrdhpB1Gc-WaKrtjFMkFVouxQTGjsWApuA~WyJ6bkZLdk5CZnh4dDNlVDJVIiwicGVyc29uIix7Im5hbWUiOiJ0ZXN0IHBlcnNvbiIsImFnZSI6MjV9XQ~eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL3ZhbGlkLnZlcmlmaWVyLnVybCIsIm5vbmNlIjoibklkQmJOZ1JxQ1hCbDhZT2tmVmRnPT0iLCJzZF9oYXNoIjoiUUJiNVdud2FTTTVjODEtNzhIN3JWS0ZKYVl2QlZ0YWFoRTBOX09MNlgtSSIsImlhdCI6MTc0ODMyMTAzMn0.XwQE8BY-i1UMihAuwushw5lc1pUfjPvlgAUrcqIGvKNYxBTMeiMeDr2DIUjIFqUqMsK3o7eYcd4jPP2DWU56cQ';
-      const nonce = 'nIdBbNgRqCXBl8YOkfVdg==';
+      it('should verify a dc+sd-jwt presentation with a KeyBindingJWT', async () => {
+        const { presentation, issuerVerifier, kbVerifier } = await issueAndPresent();
 
-      const issuerPubKey = await importJWK({
-        kty: 'EC',
-        x: 'MRbP5zJSo9CxUla-ThmzvwUl_3f76bCwrnuQOPK54dQ',
-        y: 't1VIetPpyi7rV8ARvaas1VmPmgd6YGo1e-Z5aqedwEU',
-        crv: 'P-256',
+        const result = await verifier.verifyVCSDJWT(
+          presentation,
+          issuerVerifier,
+          hasherCallbackFn('sha-256'),
+          kbVerifier,
+        );
+
+        expect(result).toMatchObject({ person: { name: 'test person', age: 25 } });
       });
 
-      const vcSDJWTWithoutKeyBinding: string = dcSdJwtWithKb.slice(0, dcSdJwtWithKb.lastIndexOf('~') + 1);
-      const hasher: Hasher = hasherCallbackFn(defaultHashAlgorithm);
-      const sdJwtHash: string = hasher(vcSDJWTWithoutKeyBinding);
+      it('should reject an expired credential by default, and accept it with time.skip', async () => {
+        const expiredAnHourAgo = Math.floor(Date.now() / 1000) - 3600;
+        const { presentation, issuerPublicKey, kbVerifier } = await issueAndPresent({ exp: expiredAnHourAgo });
 
-      const result = await verifier.verifyVCSDJWT(
-        dcSdJwtWithKb,
-        verifierCallbackFn(issuerPubKey),
-        hasherCallbackFn(defaultHashAlgorithm),
-        kbVeriferCallbackFn('https://valid.verifier.url', nonce, sdJwtHash),
-      );
-      expect(result).toEqual(claims);
+        // verifierCallbackFn uses jose's jwtVerify, which would reject the expired credential itself.
+        // Check the signature only, so that the library's own check is what is being tested.
+        const signatureOnlyVerifier = async (jwt: string) => !!(await compactVerify(jwt, issuerPublicKey));
+
+        await expect(
+          verifier.verifyVCSDJWT(presentation, signatureOnlyVerifier, hasherCallbackFn('sha-256'), kbVerifier),
+        ).rejects.toThrow(`SD-JWT expired at ${expiredAnHourAgo}`);
+
+        const result = await verifier.verifyVCSDJWT(
+          presentation,
+          signatureOnlyVerifier,
+          hasherCallbackFn('sha-256'),
+          kbVerifier,
+          { time: { skip: true } },
+        );
+        expect(result).toMatchObject({ exp: expiredAnHourAgo });
+      });
     });
 
     it('should verify VerifiableCredential SD JWT Without KeyBindingJWT (vc+sd-jwt typ)', async () => {
@@ -135,7 +200,7 @@ describe('Verifier', () => {
       expect(result).toEqual(claims);
     });
 
-    it('should verify VerifiableCredential SD JWT Without KeyBindingJWT (dc+sd-jwt typ)', async () => {
+    it("should verify VerifiableCredential SD JWT Without KeyBindingJWT (dc+sd-jwt typ), issued with _sd_alg 'sha256'", async () => {
       const claims = {
         iat: 1748320939,
         cnf: {

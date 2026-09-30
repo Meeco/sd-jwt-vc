@@ -9,7 +9,7 @@ import {
   verifySDJWT,
 } from '@meeco/sd-jwt';
 import { SDJWTVCError } from './errors.js';
-import { JWT } from './types.js';
+import { JWT, VerifyVCSDJWTOptions } from './types.js';
 import { ValidTypValues } from './util.js';
 
 const VALID_TYP_VALUES_ARRAY: string[] = Object.values(ValidTypValues);
@@ -21,6 +21,8 @@ export class Verifier {
    * @param verifierCallbackFn The verifier callback function.
    * @param hasherCallbackFn The hasher callback function.
    * @param kbVeriferCallbackFn The key binding verifier callback function.
+   * @param options Validation options passed through to @meeco/sd-jwt, e.g. { time: { skip: true } }
+   * to leave the credential's validity period to the caller.
    * @throws An error if the SD-JWT cannot be verified.
    * @returns The decoded SD-JWT payload.
    */
@@ -29,6 +31,7 @@ export class Verifier {
     verifierCallbackFn: VerifierCallbackFn,
     hasherCallbackFn: Hasher,
     kbVeriferCallbackFn?: KeyBindingVerifier,
+    options?: VerifyVCSDJWTOptions,
   ): Promise<SDJWTPayload> {
     const { header: jwtHeader } = decodeJWT(sdJWT.split('~')[0]);
 
@@ -53,13 +56,14 @@ export class Verifier {
       }
     }
 
-    const options: VerifySDJWTOptions = {};
+    const sdJWTOptions: VerifySDJWTOptions = { time: options?.time };
     if (kbVeriferCallbackFn) {
-      options.kb = {
+      sdJWTOptions.kb = {
         verifier: kbVeriferCallbackFn,
+        iat: options?.kb?.iat,
       };
     }
-    const result = await verifySDJWT(sdJWT, verifierCallbackFn, () => Promise.resolve(hasherCallbackFn), options);
+    const result = await verifySDJWT(sdJWT, verifierCallbackFn, () => Promise.resolve(hasherCallbackFn), sdJWTOptions);
     return result;
   }
 }
