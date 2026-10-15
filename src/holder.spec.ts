@@ -255,7 +255,7 @@ describe('Holder', () => {
       d: '9Ie2xvzUdQBGCjT9ktsZYGzwG4hOWea-zvCQSQSWJxk',
     };
 
-    const pk = await importJWK(privateKey);
+    const pk = await importJWK(privateKey, supportedAlgorithm.ES256);
 
     const signer: SignerConfig = {
       alg: supportedAlgorithm.ES256,

@@ -47,11 +47,14 @@ describe('Verifier', () => {
         nonce: 'nIdBbNgRqCXBl8YOkfVdg==',
       };
 
-      const issuerPubKey = await importJWK({
-        crv: 'Ed25519',
-        x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
-        kty: 'OKP',
-      });
+      const issuerPubKey = await importJWK(
+        {
+          crv: 'Ed25519',
+          x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
+          kty: 'OKP',
+        },
+        supportedAlgorithm.EdDSA,
+      );
 
       const vcSDJWTWithoutKeyBinding: string = vcSDJWTWithkeyBindingJWT.slice(
         0,
@@ -186,11 +189,14 @@ describe('Verifier', () => {
       const vcSDJWTWithOutkeyBindingJWT =
         'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~';
 
-      const issuerPubKey = await importJWK({
-        crv: 'Ed25519',
-        x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
-        kty: 'OKP',
-      });
+      const issuerPubKey = await importJWK(
+        {
+          crv: 'Ed25519',
+          x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
+          kty: 'OKP',
+        },
+        supportedAlgorithm.EdDSA,
+      );
 
       const result = await verifier.verifyVCSDJWT(
         vcSDJWTWithOutkeyBindingJWT,
@@ -219,12 +225,15 @@ describe('Verifier', () => {
       const dcSdJwtWithoutKb =
         'eyJ0eXAiOiJkYytzZC1qd3QiLCJhbGciOiJFUzI1NiJ9.eyJpYXQiOjE3NDgzMjA5MzksImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHA6Ly9pc3N1ZXIudXJsL2p3a3MiLCJ2Y3QiOiJodHRwczovL2NyZWRlbnRpYWxzLmV4YW1wbGUuY29tL2lkZW50aXR5X2NyZWRlbnRpYWwiLCJfc2QiOlsiYnY3ZmZiaWRnV3JnR19YNTlBUjZYZXBOb3I1RjNZeTNxZ01IOUZHbmlaZyJdLCJfc2RfYWxnIjoic2hhMjU2In0.kngQbIsVNEA03Pif5om5fvnt9C2Sz83c-XblGUAWDyseGYqhSu5nwrdhpB1Gc-WaKrtjFMkFVouxQTGjsWApuA~WyJ6bkZLdk5CZnh4dDNlVDJVIiwicGVyc29uIix7Im5hbWUiOiJ0ZXN0IHBlcnNvbiIsImFnZSI6MjV9XQ~';
 
-      const issuerPubKey = await importJWK({
-        kty: 'EC',
-        x: 'MRbP5zJSo9CxUla-ThmzvwUl_3f76bCwrnuQOPK54dQ',
-        y: 't1VIetPpyi7rV8ARvaas1VmPmgd6YGo1e-Z5aqedwEU',
-        crv: 'P-256',
-      });
+      const issuerPubKey = await importJWK(
+        {
+          kty: 'EC',
+          x: 'MRbP5zJSo9CxUla-ThmzvwUl_3f76bCwrnuQOPK54dQ',
+          y: 't1VIetPpyi7rV8ARvaas1VmPmgd6YGo1e-Z5aqedwEU',
+          crv: 'P-256',
+        },
+        supportedAlgorithm.ES256,
+      );
 
       const result = await verifier.verifyVCSDJWT(
         dcSdJwtWithoutKb,
@@ -236,11 +245,14 @@ describe('Verifier', () => {
 
     it('should throw an error for invalid typ header', async () => {
       const invalidTypJwt = 'eyJ0eXAiOiJpbnZhbGlkK3R5cCIsImFsZyI6IkVkRFNBIn0.eyJpc3MiOiJ0ZXN0LWlzc3VlciJ9.c2lnbmF0dXJl';
-      const issuerPubKey = await importJWK({
-        crv: 'Ed25519',
-        x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
-        kty: 'OKP',
-      });
+      const issuerPubKey = await importJWK(
+        {
+          crv: 'Ed25519',
+          x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
+          kty: 'OKP',
+        },
+        supportedAlgorithm.EdDSA,
+      );
 
       await expect(() =>
         verifier.verifyVCSDJWT(invalidTypJwt, verifierCallbackFn(issuerPubKey), hasherCallbackFn(defaultHashAlgorithm)),
@@ -253,11 +265,14 @@ describe('Verifier', () => {
       const vcSDJWTWithkeyBindingJWT =
         'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL3ZhbGlkLnZlcmlmaWVyLnVybCIsIm5vbmNlIjoibklkQmJOZWdScUNYQmw4WU9rZlZkZz09IiwiaWF0IjoxNjk1NzgzOTgzMDQxfQ.YwgHkYEpCFRHny5L4KdnU_qARVHL2jAScodRqfF5UP50nbryqIl4i1OuaxuQKala_uYNT-e0D4xzghoxWE56SQ';
 
-      const issuerPubKey = await importJWK({
-        crv: 'Ed25519',
-        x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
-        kty: 'OKP',
-      });
+      const issuerPubKey = await importJWK(
+        {
+          crv: 'Ed25519',
+          x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
+          kty: 'OKP',
+        },
+        supportedAlgorithm.EdDSA,
+      );
 
       await expect(() =>
         verifier.verifyVCSDJWT(
@@ -274,11 +289,14 @@ describe('Verifier', () => {
           'eyJ0eXAiOiJ2YytzZC1qd3QiLCJhbGciOiJFZERTQSJ9.eyJpYXQiOjE2OTU2ODI0MDg4NTcsImNuZiI6eyJqd2siOnsia3R5IjoiRUMiLCJ4Ijoickg3T2xtSHFkcE5PUjJQMjhTN3Vyb3hBR2sxMzIxTnNneGdwNHhfUGlldyIsInkiOiJXR0NPSm1BN25Uc1hQOUF6X210TnkwalQ3bWRNQ21TdFRmU080RGpSc1NnIiwiY3J2IjoiUC0yNTYifX0sImlzcyI6Imh0dHBzOi8vdmFsaWQuaXNzdWVyLnVybCIsInR5cGUiOiJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsInN0YXR1cyI6eyJpZHgiOiJzdGF0dXNJbmRleCIsInVyaSI6Imh0dHBzOi8vdmFsaWQuc3RhdHVzLnVybCJ9LCJwZXJzb24iOnsiX3NkIjpbImNRbzBUTTdfZEZXb2djcUpUTlJPeGJUTnI1T0VaakNWUHNlVVBVN0ROa3ciLCJZY3BHVTNKTDFvS0NoOXY4VjAwQmxWLTQtZTFWN1h0U1BvYUtra2RuZG1BIl19fQ.iPmq7Fv-pxS5NgTpH5xUarz6uG1MIphHy4q5mWdLBJRfp6ER2eG306WeHhCBoDzrYURgWZiEySnTEBDbD2HfCA~WyJNcEFKRDhBWVBQaEJhT0tNIiwibmFtZSIsInRlc3QgcGVyc29uIl0~WyJJbFl3RkV5WDlLSFVIU1NFIiwiYWdlIiwyNV0~eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL3ZhbGlkLnZlcmlmaWVyLnVybCIsImlhdCI6MTY5NTc4Mzk4MzA0MX0.YwgHkYEpCFRHny5L4KdnU_qARVHL2jAScodRqfF5UP50nbryqIl4i1OuaxuQKala_uYNT-e0D4xzghoxWE56SQ',
         nonce: 'nIdBbNegRqCXBl8YOkfVdg==',
       };
-      const issuerPubKey = await importJWK({
-        crv: 'Ed25519',
-        x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
-        kty: 'OKP',
-      });
+      const issuerPubKey = await importJWK(
+        {
+          crv: 'Ed25519',
+          x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
+          kty: 'OKP',
+        },
+        supportedAlgorithm.EdDSA,
+      );
 
       const vcSDJWTWithoutKeyBinding: string = vcSDJWTWithkeyBindingJWT.slice(
         0,
