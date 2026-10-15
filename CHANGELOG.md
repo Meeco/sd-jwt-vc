@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project (loosely) adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.4.1 - 2026-10-15
+
+### Changed
+
+- README examples updated for `jose` 6: `KeyLike` is replaced with `CryptoKey`, and `importJWK` is given an explicit `alg`
+
+### Security
+
+- Upgrade development dependencies, including `jose` from 5.10.0 to 6.2.12
+- Override `js-yaml` for `@istanbuljs/load-nyc-config` to remove the vulnerable `sprintf-js` ([GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c)) from the development dependency tree
+
 ## 2.4.0 - 2026-09-29
 
 ### Added
