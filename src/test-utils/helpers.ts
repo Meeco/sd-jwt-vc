@@ -1,11 +1,11 @@
 import { Hasher, JWK, KeyBindingVerifier, Signer, Verifier, base64encode, decodeJWT } from '@meeco/sd-jwt';
 import { createHash, randomBytes } from 'crypto';
-import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK, jwtVerify } from 'jose';
+import { JWTHeaderParameters, JWTPayload, SignJWT, importJWK, jwtVerify } from 'jose';
 import { SDJWTVCError } from '../errors';
 import { NonceGenerator } from '../types';
 import { defaultHashAlgorithm, supportedAlgorithm } from '../util';
 
-export function signerCallbackFn(privateKey: Uint8Array | KeyLike): Signer {
+export function signerCallbackFn(privateKey: Uint8Array | CryptoKey): Signer {
   return async (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
     return (await new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey)).split('.').pop();
   };
@@ -57,7 +57,7 @@ export function keyBindingVerifierCallbackFn(): KeyBindingVerifier {
   };
 }
 
-export function verifierCallbackFn(publicKey: Uint8Array | KeyLike): Verifier {
+export function verifierCallbackFn(publicKey: Uint8Array | CryptoKey): Verifier {
   return async (jwt: string): Promise<boolean> => {
     const verifiedKbJWT = await jwtVerify(jwt, publicKey);
     return !!verifiedKbJWT;

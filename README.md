@@ -33,7 +33,7 @@ Here's an example:
 
 ```typescript
 import { createHash } from 'crypto';
-import { JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, exportJWK, generateKeyPair } from 'jose';
+import { JWTHeaderParameters, JWTPayload, SignJWT, exportJWK, generateKeyPair } from 'jose';
 import { DisclosureFrame, Hasher, SDJWTPayload, Signer, base64encode } from '@meeco/sd-jwt';
 import {
   CreateSDJWTPayload,
@@ -52,7 +52,7 @@ const hasherCallbackFn = function (alg: string = defaultHashAlgorithm): Hasher {
   };
 };
 
-const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
+const signerCallbackFn = function (privateKey: Uint8Array | CryptoKey): Signer {
   return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
     return (await new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey)).split('.').pop();
   };
@@ -135,7 +135,7 @@ To use the Holder class, you need to create an instance of it by passing in a Ho
 
 ```typescript
 import { KeyBindingVerifier, Signer, decodeJWT, base64encode } from '@meeco/sd-jwt';
-import { JWK, JWTHeaderParameters, JWTPayload, KeyLike, SignJWT, importJWK, jwtVerify } from 'jose';
+import { JWK, JWTHeaderParameters, JWTPayload, SignJWT, importJWK, jwtVerify } from 'jose';
 import { Holder, SignerConfig, supportedAlgorithm } from '@meeco/sd-jwt-vc';
 import { createHash } from 'crypto';
 
@@ -148,7 +148,7 @@ const hasherFnResolver = (alg: string) => {
   return Promise.resolve(hasher);
 };
 
-const signerCallbackFn = function (privateKey: Uint8Array | KeyLike): Signer {
+const signerCallbackFn = function (privateKey: Uint8Array | CryptoKey): Signer {
   return (protectedHeader: JWTHeaderParameters, payload: JWTPayload): Promise<string> => {
     return (await new SignJWT(payload).setProtectedHeader(protectedHeader).sign(privateKey)).split('.').pop();
   };
@@ -169,7 +169,7 @@ async function main() {
     d: '9Ie2xvzUdQBGCjT9ktsZYGzwG4hOWea-zvCQSQSWJxk',
   };
 
-  const pk = await importJWK(privateKey);
+  const pk = await importJWK(privateKey, supportedAlgorithm.ES256);
 
   const signer: SignerConfig = {
     alg: supportedAlgorithm.ES256,
@@ -277,10 +277,10 @@ Here's an example:
 ```typescript
 import { Hasher, KeyBindingVerifier, base64encode, decodeJWT } from '@meeco/sd-jwt';
 import { createHash } from 'crypto';
-import { JWK, KeyLike, importJWK, jwtVerify } from 'jose';
+import { JWK, importJWK, jwtVerify } from 'jose';
 import { Verifier, defaultHashAlgorithm, supportedAlgorithm } from '@meeco/sd-jwt-vc';
 
-function verifierCallbackFn(publicKey: Uint8Array | KeyLike) {
+function verifierCallbackFn(publicKey: Uint8Array | CryptoKey) {
   return async (jwt: string): Promise<boolean> => {
     const verifiedKbJWT = await jwtVerify(jwt, publicKey);
     return !!verifiedKbJWT;
@@ -328,11 +328,14 @@ async function main() {
     nonce: 'nIdBbNgRqCXBl8YOkfVdg==',
   };
 
-  const issuerPubKey = await importJWK({
-    crv: 'Ed25519',
-    x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
-    kty: 'OKP',
-  });
+  const issuerPubKey = await importJWK(
+    {
+      crv: 'Ed25519',
+      x: 'rc0lLGwZ7qsLvHsCUcd84iGz3-MaKUumZP03JlJjLAs',
+      kty: 'OKP',
+    },
+    supportedAlgorithm.EdDSA,
+  );
 
   const vcSDJWTWithoutKeyBinding: string = vcSDJWTWithkeyBindingJWT.slice(
     0,

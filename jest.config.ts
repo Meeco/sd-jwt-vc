@@ -9,8 +9,10 @@ const config: Config = {
   roots: ['<rootDir>/src'],
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: { allowJs: true } }],
   },
+  // jose v6 is ESM-only, so it has to be transformed to CommonJS for Jest
+  transformIgnorePatterns: ['/node_modules/(?!jose/)'],
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: './coverage',
   coveragePathIgnorePatterns: ['/node_modules/', '/src/test-utils/'],
